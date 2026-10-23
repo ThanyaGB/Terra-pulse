@@ -1,0 +1,52 @@
+{
+  "$id": "https://vayu-swachh.example/events/booking.created.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "emitted_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "event_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "payload": {
+      "properties": {
+        "booking_id": {
+          "type": "string"
+        },
+        "machinery_id": {
+          "type": "string"
+        },
+        "parcel_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "booking_id",
+        "parcel_id",
+        "machinery_id"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "1.0"
+    },
+    "trace_id": {
+      "type": "string"
+    },
+    "type": {
+      "const": "booking.created"
+    }
+  },
+  "required": [
+    "event_id",
+    "trace_id",
+    "schema_version",
+    "emitted_at",
+    "type",
+    "payload"
+  ],
+  "title": "booking.created",
+  "type": "object"
+}

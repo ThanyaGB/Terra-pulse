@@ -1,0 +1,1752 @@
+{
+  "components": {
+    "schemas": {
+      "Body_reports_photo_v1_reports_photo_post": {
+        "properties": {
+          "area_id": {
+            "default": "anand-vihar",
+            "title": "Area Id",
+            "type": "string"
+          },
+          "category": {
+            "enum": [
+              "open_burning",
+              "construction",
+              "road_dust"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "photo": {
+            "contentMediaType": "application/octet-stream",
+            "title": "Photo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "photo",
+          "category"
+        ],
+        "title": "Body_reports_photo_v1_reports_photo_post",
+        "type": "object"
+      },
+      "BookingCreate": {
+        "properties": {
+          "machine_type": {
+            "anyOf": [
+              {
+                "enum": [
+                  "super_seeder",
+                  "baler",
+                  "happy_seeder"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Overrides the parcel's usual machine need",
+            "title": "Machine Type"
+          },
+          "machinery_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "examples": [
+              "SS-08"
+            ],
+            "title": "Machinery Id"
+          },
+          "parcel_id": {
+            "examples": [
+              "PCL-SGR-0412"
+            ],
+            "title": "Parcel Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parcel_id"
+        ],
+        "title": "BookingCreate",
+        "type": "object"
+      },
+      "CollectionCreate": {
+        "properties": {
+          "parcel_id": {
+            "title": "Parcel Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parcel_id"
+        ],
+        "title": "CollectionCreate",
+        "type": "object"
+      },
+      "DevToken": {
+        "properties": {
+          "role": {
+            "enum": [
+              "policy_officer",
+              "fpo_coordinator",
+              "farmer",
+              "citizen",
+              "admin"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "sub": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub"
+          }
+        },
+        "required": [
+          "role"
+        ],
+        "title": "DevToken",
+        "type": "object"
+      },
+      "DirectiveCreate": {
+        "properties": {
+          "area_ids": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Area Ids",
+            "type": "array"
+          },
+          "type": {
+            "enum": [
+              "grap_ii",
+              "diversion_trucks",
+              "fog_cannons"
+            ],
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "type"
+        ],
+        "title": "DirectiveCreate",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "Keypress": {
+        "properties": {
+          "key": {
+            "enum": [
+              "1",
+              "2",
+              "9"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "parcel_id": {
+            "title": "Parcel Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parcel_id",
+          "key"
+        ],
+        "title": "Keypress",
+        "type": "object"
+      },
+      "Receipt": {
+        "properties": {
+          "tonnes": {
+            "exclusiveMinimum": 0.0,
+            "title": "Tonnes",
+            "type": "number"
+          }
+        },
+        "required": [
+          "tonnes"
+        ],
+        "title": "Receipt",
+        "type": "object"
+      },
+      "TriggerCall": {
+        "properties": {
+          "lang": {
+            "default": "pa",
+            "enum": [
+              "pa",
+              "hi",
+              "en"
+            ],
+            "title": "Lang",
+            "type": "string"
+          },
+          "parcel_id": {
+            "title": "Parcel Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "parcel_id"
+        ],
+        "title": "TriggerCall",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Closed-loop air quality action platform. Contract-first: this schema is exported to packages/contracts/openapi.json.",
+    "title": "Vayu-Swachh API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/aqi/communities": {
+      "get": {
+        "operationId": "communities_v1_aqi_communities_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Communities V1 Aqi Communities Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Monitored communities (extension)"
+      }
+    },
+    "/v1/aqi/community/{community_id}": {
+      "get": {
+        "operationId": "community_v1_aqi_community__community_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "community_id",
+            "required": true,
+            "schema": {
+              "title": "Community Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "time",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Community V1 Aqi Community  Community Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Community AQI card and source mix"
+      }
+    },
+    "/v1/aqi/grid": {
+      "get": {
+        "operationId": "aqi_grid_v1_aqi_grid_get",
+        "parameters": [
+          {
+            "description": "min_lon,min_lat,max_lon,max_lat",
+            "in": "query",
+            "name": "bbox",
+            "required": true,
+            "schema": {
+              "description": "min_lon,min_lat,max_lon,max_lat",
+              "title": "Bbox",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "time",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Time"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 500,
+              "maximum": 2500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Aqi Grid V1 Aqi Grid Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "1 km grid AQI with source mix"
+      }
+    },
+    "/v1/attribution/summary": {
+      "get": {
+        "operationId": "attribution_summary_v1_attribution_summary_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "region",
+            "required": false,
+            "schema": {
+              "default": "delhi_ncr",
+              "title": "Region",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Attribution Summary V1 Attribution Summary Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Source attribution matrix"
+      }
+    },
+    "/v1/audit/verify": {
+      "get": {
+        "operationId": "audit_verify_v1_audit_verify_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Audit Verify V1 Audit Verify Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Verify the audit hash chain (extension)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/auth/dev-token": {
+      "post": {
+        "operationId": "dev_token_v1_auth_dev_token_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DevToken"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Dev Token V1 Auth Dev Token Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue a development token (disabled outside dev)",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/bookings": {
+      "post": {
+        "operationId": "bookings_create_v1_bookings_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Bookings Create V1 Bookings Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a machinery booking",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/v1/bookings/{booking_id}/confirm": {
+      "post": {
+        "operationId": "bookings_confirm_v1_bookings__booking_id__confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "booking_id",
+            "required": true,
+            "schema": {
+              "title": "Booking Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Bookings Confirm V1 Bookings  Booking Id  Confirm Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Keypad confirmation (DTMF 1)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/v1/calls": {
+      "get": {
+        "operationId": "calls_for_parcel_v1_calls_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "parcel_id",
+            "required": true,
+            "schema": {
+              "title": "Parcel Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Calls For Parcel V1 Calls Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Calls for a parcel with matched machine (extension)",
+        "tags": [
+          "fpo"
+        ]
+      }
+    },
+    "/v1/calls/keypress": {
+      "post": {
+        "operationId": "calls_keypress_v1_calls_keypress_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Keypress"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Calls Keypress V1 Calls Keypress Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Keypad press 1/2/9 from the simulator or IVR (extension)",
+        "tags": [
+          "farmer"
+        ]
+      }
+    },
+    "/v1/calls/session": {
+      "get": {
+        "operationId": "call_session_v1_calls_session_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "lang",
+            "required": false,
+            "schema": {
+              "default": "pa",
+              "enum": [
+                "pa",
+                "hi",
+                "en"
+              ],
+              "title": "Lang",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "parcel_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Parcel Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Call Session V1 Calls Session Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Call script for the farmer simulator (extension)",
+        "tags": [
+          "farmer"
+        ]
+      }
+    },
+    "/v1/calls/trigger": {
+      "post": {
+        "operationId": "calls_trigger_v1_calls_trigger_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerCall"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Calls Trigger V1 Calls Trigger Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Trigger a voice call",
+        "tags": [
+          "fpo"
+        ]
+      }
+    },
+    "/v1/calls/webhook/{provider}": {
+      "post": {
+        "operationId": "calls_webhook_v1_calls_webhook__provider__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "title": "Provider",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "signature",
+            "required": false,
+            "schema": {
+              "default": "",
+              "title": "Signature",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Calls Webhook V1 Calls Webhook  Provider  Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signed provider webhook: call status and DTMF",
+        "tags": [
+          "webhooks"
+        ]
+      }
+    },
+    "/v1/calls/{call_id}/log": {
+      "get": {
+        "operationId": "calls_log_v1_calls__call_id__log_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "call_id",
+            "required": true,
+            "schema": {
+              "title": "Call Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Calls Log V1 Calls  Call Id  Log Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Transcript and intent summary (phone masked)",
+        "tags": [
+          "fpo"
+        ]
+      }
+    },
+    "/v1/collections/request": {
+      "post": {
+        "operationId": "collections_request_v1_collections_request_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Collections Request V1 Collections Request Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Off-field straw collection at floor price",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/v1/collections/summary": {
+      "get": {
+        "operationId": "collections_summary_v1_collections_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Collections Summary V1 Collections Summary Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Biomass purchase summary (extension)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/v1/collections/{request_id}/receipt": {
+      "post": {
+        "operationId": "collections_receipt_v1_collections__request_id__receipt_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "request_id",
+            "required": true,
+            "schema": {
+              "title": "Request Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Receipt"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Collections Receipt V1 Collections  Request Id  Receipt Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Weighbridge receipt (webhook from the partner)",
+        "tags": [
+          "bookings"
+        ]
+      }
+    },
+    "/v1/directives": {
+      "get": {
+        "operationId": "directives_list_v1_directives_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Directives List V1 Directives Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List directives (extension)",
+        "tags": [
+          "directives"
+        ]
+      },
+      "post": {
+        "operationId": "directives_create_v1_directives_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DirectiveCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Directives Create V1 Directives Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue a directive (two-person approval for diversions)",
+        "tags": [
+          "directives"
+        ]
+      }
+    },
+    "/v1/directives/preview": {
+      "get": {
+        "operationId": "directive_preview_v1_directives_preview_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "type",
+            "required": true,
+            "schema": {
+              "title": "Type",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Directive Preview V1 Directives Preview Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Confirmation preview (extension)",
+        "tags": [
+          "directives"
+        ]
+      }
+    },
+    "/v1/directives/{directive_id}/approve": {
+      "post": {
+        "operationId": "directives_approve_v1_directives__directive_id__approve_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "directive_id",
+            "required": true,
+            "schema": {
+              "title": "Directive Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Directives Approve V1 Directives  Directive Id  Approve Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Second approver",
+        "tags": [
+          "directives"
+        ]
+      }
+    },
+    "/v1/fpo/assign": {
+      "post": {
+        "operationId": "fpo_assign_v1_fpo_assign_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BookingCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Fpo Assign V1 Fpo Assign Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Assign a machine on-site (extension)",
+        "tags": [
+          "fpo"
+        ]
+      }
+    },
+    "/v1/health/advice": {
+      "get": {
+        "operationId": "health_advice_v1_health_advice_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "default": "general",
+              "title": "Profile",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "community_id",
+            "required": false,
+            "schema": {
+              "default": "anand-vihar",
+              "title": "Community Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "time",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Advice V1 Health Advice Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Profile-specific advice"
+      }
+    },
+    "/v1/machinery/status": {
+      "get": {
+        "operationId": "machinery_status_v1_machinery_status_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Machinery Status V1 Machinery Status Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Machinery status and utilisation"
+      }
+    },
+    "/v1/pipeline/health": {
+      "get": {
+        "operationId": "pipeline_health_v1_pipeline_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Pipeline Health V1 Pipeline Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Ingestion and agent status"
+      }
+    },
+    "/v1/plume/projection": {
+      "get": {
+        "operationId": "plume_projection_v1_plume_projection_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "origin",
+            "required": false,
+            "schema": {
+              "default": "sangrur",
+              "title": "Origin",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "hours",
+            "required": false,
+            "schema": {
+              "default": 72,
+              "maximum": 72,
+              "minimum": 1,
+              "title": "Hours",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Plume Projection V1 Plume Projection Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Plume arrival timeline per street"
+      }
+    },
+    "/v1/realtime/snapshot": {
+      "get": {
+        "operationId": "realtime_snapshot_v1_realtime_snapshot_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Realtime Snapshot V1 Realtime Snapshot Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Polling fallback for /ws/live (extension)",
+        "tags": [
+          "realtime"
+        ]
+      }
+    },
+    "/v1/reports/photo": {
+      "post": {
+        "operationId": "reports_photo_v1_reports_photo_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_reports_photo_v1_reports_photo_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reports Photo V1 Reports Photo Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Citizen photo report (EXIF stripped, GPS coarsened)",
+        "tags": [
+          "citizen"
+        ]
+      }
+    },
+    "/v1/reports/{reference_id}": {
+      "get": {
+        "operationId": "reports_get_v1_reports__reference_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "reference_id",
+            "required": true,
+            "schema": {
+              "title": "Reference Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Reports Get V1 Reports  Reference Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retrieve a report by reference",
+        "tags": [
+          "citizen"
+        ]
+      }
+    },
+    "/v1/risk/parcels": {
+      "get": {
+        "operationId": "risk_parcels_v1_risk_parcels_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "village",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Village"
+            }
+          },
+          {
+            "in": "query",
+            "name": "tier",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Tier"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Risk Parcels V1 Risk Parcels Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "At-risk parcel list",
+        "tags": [
+          "fpo"
+        ]
+      }
+    },
+    "/v1/roi/summary": {
+      "get": {
+        "operationId": "roi_summary_v1_roi_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Roi Summary V1 Roi Summary Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "ROI and compliance metrics per pilot area"
+      }
+    },
+    "/v1/routes/clean": {
+      "get": {
+        "operationId": "routes_clean_v1_routes_clean_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "from",
+            "required": true,
+            "schema": {
+              "title": "From",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "to",
+            "required": true,
+            "schema": {
+              "title": "To",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "profile",
+            "required": false,
+            "schema": {
+              "default": "general",
+              "title": "Profile",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Routes Clean V1 Routes Clean Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Clean commute options"
+      }
+    }
+  }
+}

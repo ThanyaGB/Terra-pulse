@@ -1,0 +1,84 @@
+# Staging manifests (T6.4). Secrets are referenced from the cluster secret store (created by Terraform / external-secrets);
+# no secret values live in this repo. Apply:  kubectl apply -f infra/k8s/vayu.yaml
+apiVersion: v1
+kind: Namespace
+metadata: { name: vayu }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: vayu-api, namespace: vayu, labels: { app: vayu-api } }
+spec:
+  replicas: 1   # agents + world state are in-process; see note at the end of this file
+  selector: { matchLabels: { app: vayu-api } }
+  template:
+    metadata: { labels: { app: vayu-api } }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: api
+          image: ghcr.io/vayu-swachh/api:latest
+          ports: [{ containerPort: 8010 }]
+          env:
+            - { name: VAYU_ENV, value: staging }
+            - { name: HOST, value: 0.0.0.0 }
+            - name: VAYU_JWT_SECRET
+              valueFrom: { secretKeyRef: { name: vayu-secrets, key: jwt-secret } }
+            - name: VAYU_REDIS_URL
+              valueFrom: { secretKeyRef: { name: vayu-secrets, key: redis-url } }
+            - name: VAYU_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: vayu-secrets, key: database-url } }
+          resources:
+            requests: { cpu: 250m, memory: 384Mi }
+            limits: { cpu: "1", memory: 1Gi }
+          readinessProbe: { httpGet: { path: /healthz, port: 8010 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /healthz, port: 8010 }, initialDelaySeconds: 20, periodSeconds: 20, failureThreshold: 3 }
+          securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: false, capabilities: { drop: ["ALL"] } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: vayu-api, namespace: vayu }
+spec:
+  selector: { app: vayu-api }
+  ports: [{ port: 8010, targetPort: 8010 }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: vayu-api, namespace: vayu }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: vayu-api }
+  minReplicas: 1
+  maxReplicas: 4   # raise only once world state is shared (Redis/Postgres)
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 65 } }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: vayu-web, namespace: vayu, labels: { app: vayu-web } }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: vayu-web } }
+  template:
+    metadata: { labels: { app: vayu-web } }
+    spec:
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: web
+          image: ghcr.io/vayu-swachh/web:latest
+          ports: [{ containerPort: 8080 }]
+          resources:
+            requests: { cpu: 50m, memory: 64Mi }
+            limits: { cpu: 250m, memory: 128Mi }
+          readinessProbe: { httpGet: { path: /, port: 8080 }, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /, port: 8080 }, initialDelaySeconds: 10, periodSeconds: 20 }
+          securityContext: { allowPrivilegeEscalation: false, capabilities: { drop: ["ALL"] } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: vayu-web, namespace: vayu }
+spec:
+  selector: { app: vayu-web }
+  ports: [{ port: 80, targetPort: 8080 }]
+# NOTE: agents currently run inside the API process on an in-memory bus (see services/agents/runtime.py), so scale the
+# `vayu-api` deployment with replicas: 1 for agents until World state moves to Redis/Postgres. The RedisStreamsBus and
+# RedisState implementations exist (services/agents/common) for the split into one deployment per agent (ADR-01).

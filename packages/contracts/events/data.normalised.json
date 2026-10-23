@@ -1,0 +1,56 @@
+{
+  "$id": "https://vayu-swachh.example/events/data.normalised.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "emitted_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "event_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "payload": {
+      "properties": {
+        "grid_id": {
+          "type": "string"
+        },
+        "quality_flags": {
+          "type": "object"
+        },
+        "source": {
+          "type": "string"
+        },
+        "window": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "grid_id",
+        "window",
+        "quality_flags"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "1.0"
+    },
+    "trace_id": {
+      "type": "string"
+    },
+    "type": {
+      "const": "data.normalised"
+    }
+  },
+  "required": [
+    "event_id",
+    "trace_id",
+    "schema_version",
+    "emitted_at",
+    "type",
+    "payload"
+  ],
+  "title": "data.normalised",
+  "type": "object"
+}

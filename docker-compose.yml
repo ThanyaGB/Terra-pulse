@@ -1,0 +1,60 @@
+# Local infrastructure (T0.2): PostgreSQL 16 with PostGIS and TimescaleDB, Redis 7, MinIO.
+# Credentials below are local-only defaults; real environments use the secret manager.
+services:
+  postgres:
+    image: timescale/timescaledb-ha:pg16          # TimescaleDB + PostGIS in one image
+    environment:
+      POSTGRES_USER: vayu
+      POSTGRES_PASSWORD: vayu_local
+      POSTGRES_DB: vayu
+    ports: ["5432:5432"]
+    volumes: [pgdata:/home/postgres/pgdata/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vayu -d vayu"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports: ["6379:6379"]
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  minio:
+    image: minio/minio:latest
+    command: ["server", "/data", "--console-address", ":9001"]
+    environment:
+      MINIO_ROOT_USER: vayu
+      MINIO_ROOT_PASSWORD: vayu_local_secret
+    ports: ["9000:9000", "9001:9001"]
+    volumes: [miniodata:/data]
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: { context: ., dockerfile: infra/docker/api.Dockerfile }
+    profiles: ["app"]
+    environment:
+      VAYU_ENV: dev
+      VAYU_REDIS_URL: redis://redis:6379/0
+      VAYU_DATABASE_URL: postgresql+psycopg://vayu:vayu_local@postgres:5432/vayu
+    ports: ["8010:8010"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  web:
+    build: { context: ., dockerfile: infra/docker/web.Dockerfile }
+    profiles: ["app"]
+    ports: ["8080:8080"]
+
+volumes: { pgdata: {}, redisdata: {}, miniodata: {} }

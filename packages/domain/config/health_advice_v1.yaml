@@ -1,0 +1,41 @@
+# Profile-specific advice rules (spec T2.6), versioned. level: avoid | caution | ok
+version: 1
+periods:            # local hour ranges [start, end)
+  early_morning: [5, 10.5]
+  midday: [10.5, 13]
+  afternoon: [13, 16.5]
+  evening: [16.5, 21]
+  night: [21, 5]
+profile_base:
+  asthma:
+    - {id: inhaler, title: "Keep your prescribed inhaler with you", body: "Carry it whenever you step out, even for a short errand.", level: caution}
+    - {id: purifier, title: "Stay in a room with windows shut", body: "Use a purifier or a damp cloth at door gaps if you have one.", level: caution}
+  child:
+    - {id: recess, title: "Prefer indoor play today", body: "Schools may move sports indoors while AQI is Very Poor.", level: avoid}
+    - {id: mask, title: "A well-fitted child-size N95 for the commute", body: "Child sizes seal better than adult masks.", level: caution}
+  elderly:
+    - {id: rest, title: "Keep outings short and slow", body: "Avoid climbing stairs repeatedly or carrying loads outdoors.", level: caution}
+    - {id: meds, title: "Keep regular medicines on schedule", body: "Call your doctor if breathing feels heavier than usual.", level: caution}
+  outdoor:
+    - {id: n95, title: "Wear an N95 during shifts", body: "Surgical and cloth masks do not filter fine particles.", level: avoid}
+    - {id: breaks, title: "Take breaks away from the main road", body: "Rest in a lane or courtyard, away from traffic fumes.", level: caution}
+  general:
+    - {id: windows, title: "Keep windows shut when air is Very Poor", body: "Open them briefly in the clearer afternoon window.", level: caution}
+    - {id: water, title: "Drink water and rinse your eyes after being outside", body: "It helps clear irritants.", level: ok}
+period_items:
+  early_morning:
+    - {id: inversion, title: "Avoid outdoor exercise before 10:30", title_sensitive: "Skip outdoor exercise until 10:30", body: "Smoke is trapped under the morning inversion layer, the worst hours of the day.", level: avoid}
+  midday:
+    - {id: midday, title: "Air starts to lift", body: "Wait for the 13:30 window for errands that need you outdoors.", level: caution}
+  afternoon:
+    - {id: ventilation, title: "Best window of the day: 13:30 to 16:00", body: "Wind speeds rise and pollutants disperse. Air out rooms and run outdoor errands now.", level: ok}
+  evening:
+    - {id: traffic, title: "Evening traffic and cooling trap smoke again", body: "Avoid arterial roads between 17:30 and 20:30; prefer inner lanes.", level: avoid}
+  night:
+    - {id: night, title: "Keep windows closed overnight", body: "Pollution builds up again after 21:00.", level: caution}
+# When the current AQI is below this the "ok" day items stay; at or above it the ventilation window is only "caution".
+cautious_aqi: 300
+clean_air_aqi: 100
+route:
+  max_extra_minutes: 3
+  activity: walking

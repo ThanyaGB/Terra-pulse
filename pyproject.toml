@@ -1,0 +1,53 @@
+[project]
+name = "vayu-swachh"
+version = "0.1.0"
+description = "Closed-loop air quality action platform for northern India"
+requires-python = ">=3.11"   # spec targets 3.12; code avoids 3.12-only syntax so it also runs on 3.11
+dependencies = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "pydantic>=2.6",
+  "pydantic-settings>=2.2",
+  "httpx>=0.27",
+  "pyyaml>=6",
+  "redis>=5",
+  "pillow>=10",
+  "python-multipart>=0.0.9",
+  "websockets>=12",
+  "sqlalchemy>=2",
+  "alembic>=1.13",
+  "psycopg[binary]>=3.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-asyncio>=0.23", "hypothesis>=6", "ruff>=0.4", "mypy>=1.10", "types-PyYAML", "jsonschema>=4"]
+
+[tool.pytest.ini_options]
+pythonpath = [".", "services", "packages"]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+markers = ["live: hits real public data APIs (FIRMS, Open-Meteo); deselect with -m 'not live'"]
+
+[tool.ruff]
+line-length = 170
+target-version = "py311"
+extend-exclude = ["docs/legacy", "apps"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = ["B008", "E741", "B905", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agents", "api", "domain", "ingestion", "integrations", "contracts"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501", "B011"]
+"db/migrations/*" = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+mypy_path = "services:packages"
+explicit_package_bases = true
+exclude = ["docs/legacy", "apps", "tests"]
+ignore_missing_imports = true

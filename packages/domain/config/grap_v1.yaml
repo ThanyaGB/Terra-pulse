@@ -1,0 +1,24 @@
+# Versioned GRAP mapping (spec 5.4). AQI bands follow the CPCB scale and GRAP stages.
+version: 1
+tiers:
+  - id: none
+    min_aqi: 0
+    actions: []
+  - id: stage_1
+    min_aqi: 201
+    actions: [{type: road_sweeping, approval: single}, {type: dust_suppression, approval: single}]
+  - id: stage_2
+    min_aqi: 301
+    actions: [{type: road_sweeping, approval: single}, {type: fog_cannons, approval: single}, {type: grap_ii_alert, approval: single}]
+  - id: stage_3
+    min_aqi: 401
+    actions: [{type: fog_cannons, approval: single}, {type: grap_ii_alert, approval: single}, {type: diversion_trucks, approval: two_person}]
+  - id: stage_4
+    min_aqi: 451
+    actions: [{type: fog_cannons, approval: single}, {type: grap_ii_alert, approval: single}, {type: diversion_trucks, approval: two_person}]
+# If one source exceeds this share the tier also suggests a source-specific action.
+attribution_peaks:
+  straw_plume: {share_pct: 40, extra_action: {type: biomass_purchase_push, approval: single}}
+  vehicle: {share_pct: 40, extra_action: {type: diversion_trucks, approval: two_person}}
+  dust: {share_pct: 30, extra_action: {type: road_sweeping, approval: single}}
+  industrial_waste: {share_pct: 30, extra_action: {type: dust_suppression, approval: single}}

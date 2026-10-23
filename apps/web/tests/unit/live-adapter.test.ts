@@ -1,0 +1,88 @@
+import { describe, expect, it, vi } from 'vitest';
+import type { Client } from '@/api-client';
+import { createLiveApi, envelopeToEvents } from '@/api/live';
+
+/** Payloads copied from real responses of the backend (packages/contracts/openapi.json). */
+const responses: Record<string, unknown> = {
+  '/risk/parcels': {
+    items: [{ parcel_id: 'PCL-SGR-0530', village: 'Sherpur', farmer_name: 'Gurpreet Kaur', acres: 17, harvest_date: '2026-10-30', score: 46.8, tier: 'medium',
+      machine_need: 'baler', status: 'to_contact', last_contact_at: null }],
+    villages: ['Sherpur', 'Sunam'],
+  },
+  '/machinery/status': { types: [{ type: 'baler', label: 'Baler', total: 5, in_use: 2, utilisation_pct: 40 }] },
+  '/aqi/community/av-204': {
+    community_id: 'av-204', name: 'Anand Vihar, Colony 204', aqi: 279, pm25: 113.6, source_mix: { straw_plume: 1.2, vehicle: 14.2, dust: 64.1, industrial_waste: 20.5 },
+    alerts: [{ id: 'inversion', kind: 'inversion', title: 't', body: 'b', startMin: 300, endMin: 600, severity: 'warning' }], updated_at: '2026-10-23T15:30:00Z',
+  },
+  '/pipeline/health': {
+    quality: { freshness_min: { firms: 1.2 }, status: { firms: 'ok', cpcb: 'ok', weather: 'degraded' }, origin: { firms: 'live', cpcb: 'live', weather: 'fixture' }, stations: { online: 9, total: 9 } },
+    agents: [{ agent: 'risk_agent', status: 'ok', last_latency_ms: 12.4, events_processed: 3 }], fires: { active: 368, clusters: 263 },
+  },
+  '/plume/projection': { generatedAt: 'x', horizonHours: 72, windSpeedKmh: 4, sources: [], corridor: [], hoursToReachNcr: null, streets: [] },
+};
+
+function fakeClient(): { client: Client; calls: string[] } {
+  const calls: string[] = [];
+  const client: Client = {
+    token: async () => 't',
+    get: vi.fn(async (path: string, _role, query) => { calls.push(path + (query ? `?${new URLSearchParams(query as Record<string, string>)}` : '')); return responses[path] as never; }),
+    post: vi.fn(async () => ({}) as never),
+  };
+  return { client, calls };
+}
+
+describe('live adapter maps the spec API onto the UI contract', () => {
+  it('parcels become farmers with village names and rounded risk', async () => {
+    const { client } = fakeClient();
+    const r = await createLiveApi('http://x/v1', client).getFarmers();
+    expect(r.villages).toEqual(['Sherpur', 'Sunam']);
+    expect(r.farmers[0]).toMatchObject({ id: 'PCL-SGR-0530', village: 'Sherpur', riskScore: 47, machineNeed: 'baler', status: 'to_contact' });
+  });
+
+  it('machinery utilisation uses camelCase counts', async () => {
+    const { client } = fakeClient();
+    expect(await createLiveApi('http://x/v1', client).getMachinery()).toEqual([{ type: 'baler', label: 'Baler', total: 5, inUse: 2 }]);
+  });
+
+  it('community card becomes a citizen snapshot with labelled source mix', async () => {
+    const { client } = fakeClient();
+    const s = await createLiveApi('http://x/v1', client).getCitizenSnapshot('av-204');
+    expect(s.areaName).toBe('Anand Vihar, Colony 204');
+    expect(s.pm25).toBe(114);
+    expect(s.mix.map((m) => m.label)).toEqual(['Upstream straw plume', 'Transport arterials', 'Dust & construction', 'Industry & waste burning']);
+    expect(s.mix.reduce((a, m) => a + m.pct, 0)).toBeCloseTo(100, 1);
+  });
+
+  it('pipeline health maps statuses and keeps the origin in the detail', async () => {
+    const { client } = fakeClient();
+    const h = await createLiveApi('http://x/v1', client).getHealth();
+    expect(h.items.find((i) => i.id === 'imd')).toMatchObject({ status: 'degraded' });
+    expect(h.items.find((i) => i.id === 'firms')!.detail).toContain('368 hotspots');
+    expect(h.cpcb).toEqual({ online: 9, total: 9 });
+    expect(h.agents[0]).toMatchObject({ id: 'risk_agent', latencyMs: 12 });
+  });
+
+  it('a plume that does not reach NCR within the horizon reports the horizon', async () => {
+    const { client } = fakeClient();
+    expect((await createLiveApi('http://x/v1', client).getPlume()).hoursToReachNcr).toBe(72);
+  });
+
+  it('commute free text maps to two different monitored communities', async () => {
+    const { client, calls } = fakeClient();
+    responses['/routes/clean'] = { options: [{ id: 'A', name: 'Route A', segments: [{ minutes: 5, aqi: 300, label: 'Arterial road' }] }] };
+    const r = await createLiveApi('http://x/v1', client).getRoutes('Laxmi Nagar', 'Laxmi Nagar');
+    const q = new URLSearchParams(calls[0]!.split('?')[1]);
+    expect(q.get('from')).not.toBe(q.get('to'));
+    expect(r.options[0]!.via).toBe('Arterial road');
+  });
+});
+
+describe('websocket envelope', () => {
+  it('translates aqi.update, fire and agent frames to realtime events', () => {
+    const ts = '2026-10-23T10:00:00Z';
+    expect(envelopeToEvents({ channel: 'aqi.update', ts, payload: { area_id: 'ito', name: 'ITO', aqi: 250, pm25: 99 } })[0]).toMatchObject({ type: 'aqi', areaId: 'ito', aqi: 250 });
+    expect(envelopeToEvents({ channel: 'agent.status', ts, payload: { kind: 'fire', active_fires: 368, new_detections: 4 } })[0]).toMatchObject({ type: 'fire', activeFires: 368 });
+    expect(envelopeToEvents({ channel: 'agent.status', ts, payload: { kind: 'agent', agent: 'risk_agent', status: 'ok', last_latency_ms: 3.2 } })[0]).toMatchObject({ type: 'agent', agent: { id: 'risk_agent' } });
+    expect(envelopeToEvents({ channel: 'alert.fired', ts, payload: {} })).toEqual([]);
+  });
+});

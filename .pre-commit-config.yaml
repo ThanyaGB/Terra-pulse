@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+        files: ^(services|packages)/
+        additional_dependencies: [types-PyYAML, pydantic]
+  - repo: local
+    hooks:
+      - id: secret-scan
+        name: secret scanner (blocks keys, tokens, unmasked phone numbers in fixtures)
+        entry: python scripts/secret_scan.py
+        language: system
+        pass_filenames: true
+        exclude: ^(packages/contracts/|apps/web/package-lock.json|docs/legacy/)
+      - id: tsc
+        name: tsc strict
+        entry: bash -c "cd apps/web && npx tsc --noEmit"
+        language: system
+        pass_filenames: false
+        files: ^apps/web/

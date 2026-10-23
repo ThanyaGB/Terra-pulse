@@ -1,0 +1,52 @@
+{
+  "$id": "https://vayu-swachh.example/events/workorder.created.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "properties": {
+    "emitted_at": {
+      "format": "date-time",
+      "type": "string"
+    },
+    "event_id": {
+      "format": "uuid",
+      "type": "string"
+    },
+    "payload": {
+      "properties": {
+        "action_type": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "work_order_id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "work_order_id",
+        "action_type",
+        "location"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "1.0"
+    },
+    "trace_id": {
+      "type": "string"
+    },
+    "type": {
+      "const": "workorder.created"
+    }
+  },
+  "required": [
+    "event_id",
+    "trace_id",
+    "schema_version",
+    "emitted_at",
+    "type",
+    "payload"
+  ],
+  "title": "workorder.created",
+  "type": "object"
+}

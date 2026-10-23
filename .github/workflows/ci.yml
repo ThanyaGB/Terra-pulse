@@ -1,0 +1,97 @@
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg16
+        env: { POSTGRES_USER: vayu, POSTGRES_PASSWORD: vayu_ci, POSTGRES_DB: vayu }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U vayu" --health-interval 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12", cache: pip }
+      - run: pip install -e ".[dev]" rasterio
+      - run: ruff check services packages scripts tests db run_api.py
+      - run: mypy services packages scripts run_api.py
+      - name: unit, integration (recorded fixtures) and contract tests
+        env:
+          VAYU_TEST_DATABASE_URL: postgresql+psycopg://vayu:vayu_ci@localhost:5432/vayu
+          VAYU_REDIS_URL: redis://localhost:6379/0
+        run: pytest -m "not live"
+      - name: contract diff (OpenAPI + event schemas must be regenerated when the API changes)
+        run: python scripts/export_contracts.py --check
+
+  web:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: apps/web/package-lock.json }
+      - run: npm ci
+      - name: generated API client is current
+        run: npm run gen:api && git diff --exit-code src/api-client/schema.d.ts
+      - run: npx tsc --noEmit
+      - run: npx vitest run
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: python scripts/secret_scan.py $(git ls-files)
+
+  images:
+    needs: [python, web, secrets]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions: { contents: read, packages: write }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with: { registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}" }
+      - uses: docker/build-push-action@v6
+        with: { context: ., file: infra/docker/api.Dockerfile, push: true, tags: "ghcr.io/${{ github.repository_owner }}/vayu-api:${{ github.sha }}" }
+      - uses: docker/build-push-action@v6
+        with: { context: ., file: infra/docker/web.Dockerfile, push: true, tags: "ghcr.io/${{ github.repository_owner }}/vayu-web:${{ github.sha }}" }
+
+  deploy-staging:
+    needs: images
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - name: deploy
+        run: |
+          kubectl set image deployment/vayu-api api=ghcr.io/${{ github.repository_owner }}/vayu-api:${{ github.sha }} -n vayu
+          kubectl set image deployment/vayu-web web=ghcr.io/${{ github.repository_owner }}/vayu-web:${{ github.sha }} -n vayu
+          kubectl rollout status deployment/vayu-api -n vayu --timeout=180s
+      - name: smoke tests
+        run: |
+          curl -fsS "$STAGING_URL/healthz"
+          curl -fsS "$STAGING_URL/" > /dev/null
+        env: { STAGING_URL: "${{ vars.STAGING_URL }}" }
+
+  promote-production:
+    needs: deploy-staging
+    runs-on: ubuntu-latest
+    environment: production   # configure "required reviewers" on this environment: the manual approval gate
+    steps:
+      - uses: actions/checkout@v4
+      - name: promote the same image digests
+        run: |
+          kubectl --context production set image deployment/vayu-api api=ghcr.io/${{ github.repository_owner }}/vayu-api:${{ github.sha }} -n vayu
+          kubectl --context production set image deployment/vayu-web web=ghcr.io/${{ github.repository_owner }}/vayu-web:${{ github.sha }} -n vayu

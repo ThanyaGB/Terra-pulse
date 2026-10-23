@@ -1,0 +1,32 @@
+variable "name" { type = string }
+
+resource "aws_s3_bucket" "raw" {
+  bucket = var.name
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "raw" {
+  bucket = aws_s3_bucket.raw.id
+  rule {
+    apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "raw" {
+  bucket                  = aws_s3_bucket.raw.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "raw" {
+  bucket = aws_s3_bucket.raw.id
+  rule {
+    id     = "expire-raw-after-180d"
+    status = "Enabled"
+    filter {}
+    expiration { days = 180 }
+  }
+}
+
+output "bucket" { value = aws_s3_bucket.raw.bucket }
