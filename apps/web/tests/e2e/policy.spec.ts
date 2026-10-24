@@ -24,9 +24,9 @@ test('CAQM: review the picture, scrub the plume, confirm and issue a GRAP-II ale
   await expect(dialog.getByText('Delhi (all 11 districts)')).toBeVisible();
   await expect(page.getByText('No directive sent this session.')).toBeVisible();
 
-  await dialog.getByRole('button', { name: 'Send directive' }).click();
-  await expect(page.getByText(/Issue GRAP-II alert: queued \(DIR-/)).toBeVisible();
-  await expect(page.getByText(/Last: grap ii queued/)).toBeVisible();
+  await dialog.getByRole('button', { name: 'Record recommendation' }).click();
+  await expect(page.getByText(/Issue GRAP-II alert: recorded \(DIR-/)).toBeVisible();
+  await expect(page.getByText(/Last: grap ii recorded/)).toBeVisible();
 });
 
 test('CAQM: cancelling the modal sends nothing', async ({ page }) => {

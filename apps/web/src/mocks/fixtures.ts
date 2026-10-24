@@ -124,7 +124,7 @@ export function healthItems(now = new Date()): HealthItem[] {
   return [
     { id: 'firms', label: 'NASA FIRMS', status: 'ok', detail: 'Last satellite pass 14 min ago', updatedAt: iso },
     { id: 'cpcb', label: 'CPCB stations', status: 'degraded', detail: '39/40 online, Bawana offline', updatedAt: iso },
-    { id: 'imd', label: 'IMD wind data', status: 'ok', detail: '3-hourly grid, next run 17:30', updatedAt: iso },
+    { id: 'weather', label: 'Weather (NWP and ERA5)', status: 'ok', detail: 'Hourly, next run 17:30', updatedAt: iso },
     { id: 'agents', label: 'Agent coordination', status: 'ok', detail: 'Median latency 320 ms', updatedAt: iso },
   ];
 }

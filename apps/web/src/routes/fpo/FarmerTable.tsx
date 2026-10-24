@@ -16,6 +16,7 @@ interface Props {
   onCall: (f: Farmer) => void;
   onAssign: (f: Farmer) => void;
   busyId: string | null;
+  callsOn: boolean;
 }
 
 const COLS: { key: SortKey; label: string; align?: 'right' }[] = [
@@ -27,7 +28,7 @@ const COLS: { key: SortKey; label: string; align?: 'right' }[] = [
   { key: 'lastContactAt', label: 'Last contact' },
 ];
 
-export function FarmerTable({ state, onRetry, selectedId, onSelect, onCall, onAssign, busyId }: Props) {
+export function FarmerTable({ state, onRetry, selectedId, onSelect, onCall, onAssign, busyId, callsOn }: Props) {
   const [sort, setSort] = useState<{ key: SortKey; dir: SortDir }>({ key: 'riskScore', dir: 'desc' });
   const [filters, setFilters] = useState<FarmerFilters>({ village: 'all', tier: 'all' });
 
@@ -112,7 +113,7 @@ export function FarmerTable({ state, onRetry, selectedId, onSelect, onCall, onAs
                           <span className="text-xs font-semibold text-leaf-700">Done</span>
                         ) : (
                           <div className="flex flex-wrap justify-end gap-2">
-                            <button type="button" className="btn !min-h-10" disabled={busy} onClick={() => onCall(f)} aria-label={`Call ${f.name}`}>Voice alert</button>
+                            <button type="button" className="btn !min-h-10" disabled={busy || !callsOn} title={callsOn ? undefined : 'Calls are switched off (TELEPHONY_ENABLED)'} onClick={() => onCall(f)} aria-label={`Call ${f.name}`}>Voice alert</button>
                             <button type="button" className="btn btn-primary !min-h-10" disabled={busy} onClick={() => onAssign(f)} aria-label={`Assign ${MACHINE_LABEL[f.machineNeed]} to ${f.name}`}>Assign machine</button>
                           </div>
                         )}

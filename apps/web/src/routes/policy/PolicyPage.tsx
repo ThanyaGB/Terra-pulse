@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DataAttribution } from '@/design-system/DataAttribution';
 import { OfflineBanner } from '@/design-system/OfflineBanner';
 import { PageShell } from '@/design-system/PageShell';
 import { AttributionPanel } from './AttributionPanel';
@@ -26,6 +27,7 @@ export default function PolicyPage() {
         </div>
         <DirectiveBar />
       </PageShell>
+      <DataAttribution sources={['firms', 'sentinel2', 'cpcb', 'cams', 'era5', 'nwp', 'osm']} />
     </div>
   );
 }

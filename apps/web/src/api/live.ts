@@ -1,7 +1,7 @@
 import { createClient, type Client } from '@/api-client';
 import type {
   AdviceResponse, AssignmentReceipt, AttributionResponse, BiomassStatus, BookingReceipt, BookingRequest, CallDetails, CallLogEntry,
-  CallReceipt, CallSession, CitizenArea, CitizenSnapshot, ComplianceResponse, CompletionReceipt, DirectivePreview, DirectiveReceipt, DirectiveType,
+  CallReceipt, CallSession, CitizenArea, CitizenSnapshot, ComplianceResponse, CompletionReceipt, DirectiveExport, PublicConfig, DirectivePreview, DirectiveReceipt, DirectiveType,
   Farmer, FarmersResponse, HealthItem, HealthProfile, HealthResponse, Lang, MachineType, MachineryStatus, PlumeResponse, WorkOrder,
   RealtimeEvent, ReportReceipt, ReportRequest, RoutesResponse, VayuApi,
 } from './contract';
@@ -18,6 +18,8 @@ interface PipelineHealth {
   agents: { agent: string; status: HealthStatus; last_latency_ms: number; events_processed: number }[];
   fires: { active: number; clusters: number };
 }
+interface WireDirective { id: string; type: DirectiveType; issuedAt: string; status: DirectiveReceipt['status']; requiresSecondApprover: boolean }
+const toReceipt = (d: WireDirective): DirectiveReceipt => ({ id: d.id, type: d.type, issuedAt: d.issuedAt, status: d.status, requiresSecondApprover: d.requiresSecondApprover });
 interface WireWorkOrder {
   id: string; area_id: string; area: string; action_type: WorkOrder['actionType']; status: WorkOrder['status']; due_by: string; sla_breached: boolean;
   accepted_at: string | null; completed_at: string | null; roi: { delta_pm25: number; control_area: string | null } | null;
@@ -101,7 +103,7 @@ export function createLiveApi(baseUrl: string, client: Client = createClient(bas
       const items: HealthItem[] = [
         { id: 'firms', label: 'NASA FIRMS', status: st('firms'), detail: `Updated ${mins('firms')} (${q.origin.firms}) · ${h.fires.active} hotspots`, updatedAt: now },
         { id: 'cpcb', label: 'CPCB stations', status: st('cpcb'), detail: `${q.stations.online} of ${q.stations.total} online · ${q.origin.cpcb}`, updatedAt: now },
-        { id: 'imd', label: 'IMD weather', status: st('weather'), detail: `Updated ${mins('weather')} (${q.origin.weather})`, updatedAt: now },
+        { id: 'weather', label: 'Weather (NWP and ERA5)', status: st('weather'), detail: `Updated ${mins('weather')} (${q.origin.weather})`, updatedAt: now },
         { id: 'agents', label: 'Agents', status: agentsOk, detail: `${h.agents.filter((a) => a.status === 'ok').length} of ${h.agents.length} healthy`, updatedAt: now },
       ];
       return {
@@ -111,18 +113,25 @@ export function createLiveApi(baseUrl: string, client: Client = createClient(bas
     },
     getDirectivePreview: (type: DirectiveType) => get<DirectivePreview>('/directives/preview', 'policy_officer', { type }),
     async issueDirective(type, areaIds): Promise<DirectiveReceipt> {
-      const d = await post<{ id: string; type: DirectiveType; issuedAt: string; status: DirectiveReceipt['status'] }>('/directives', 'policy_officer', { type, area_ids: areaIds });
-      return { id: d.id, type: d.type, issuedAt: d.issuedAt, status: d.status };
+      return toReceipt(await post<WireDirective>('/directives', 'policy_officer', { type, area_ids: areaIds }));
     },
+    async approveDirective(id): Promise<DirectiveReceipt> {
+      return toReceipt(await post<WireDirective>(`/directives/${encodeURIComponent(id)}/approve`, 'policy_officer'));
+    },
+    async exportDirective(id): Promise<DirectiveExport> {
+      const r = await client.download(`/directives/${encodeURIComponent(id)}/export`, 'policy_officer');
+      return { filename: r.filename ?? `advisory-${id}.pdf`, blob: r.blob };
+    },
+    getPublicConfig: () => get<PublicConfig>('/config/public', 'citizen'),
 
     async getMachinery(): Promise<MachineryStatus[]> {
       const r = await get<{ types: { type: MachineType; label: string; total: number; in_use: number }[] }>('/machinery/status', 'fpo_coordinator');
       return r.types.map((t) => ({ type: t.type, label: t.label, total: t.total, inUse: t.in_use }));
     },
     async getBiomass(): Promise<BiomassStatus> {
-      const r = await get<{ plant: string; floor_price_inr_per_tonne: number; tonnes_received: number; tonnes_requested: number; cumulative_acres: number; trucks_today: number }>(
+      const r = await get<{ plant: string; floor_price_inr_per_tonne: number | null; tonnes_received: number; tonnes_requested: number; cumulative_acres: number; trucks_today: number }>(
         '/collections/summary', 'fpo_coordinator');
-      return { plant: r.plant, floorPriceInrPerTonne: r.floor_price_inr_per_tonne, tonnesRemovedToday: r.tonnes_received, cumulativeAcres: r.cumulative_acres, trucksToday: r.trucks_today };
+      return { plant: r.plant, floorPriceInrPerTonne: r.floor_price_inr_per_tonne ?? null, tonnesRemovedToday: r.tonnes_received, cumulativeAcres: r.cumulative_acres, trucksToday: r.trucks_today };
     },
     async getFarmers(): Promise<FarmersResponse> {
       const r = await get<{ items: Parcel[]; villages: string[] }>('/risk/parcels', 'fpo_coordinator', { limit: 200 });
@@ -165,7 +174,7 @@ export function createLiveApi(baseUrl: string, client: Client = createClient(bas
 
     async getCallSession(lang: Lang): Promise<CallSession> {
       const r = await get<{ session_id: string; parcel_id: string; caller_name: string; caller_id: string; farmer_first_name: string; audio_url: string | null; lines: string[];
-        prices: { super_seeder_per_acre: number; straw_per_tonne: number } }>('/calls/session', 'farmer', { lang });
+        prices: { super_seeder_per_acre: number | null; straw_per_tonne: number | null } }>('/calls/session', 'farmer', { lang });
       sessions.set(r.session_id, r.parcel_id);
       return {
         sessionId: r.session_id, callerName: r.caller_name, callerId: r.caller_id, farmerFirstName: r.farmer_first_name, lang, audioUrl: r.audio_url,
@@ -176,8 +185,8 @@ export function createLiveApi(baseUrl: string, client: Client = createClient(bas
     async bookKey(req: BookingRequest): Promise<BookingReceipt> {
       const parcel = sessions.get(req.sessionId);
       if (!parcel) throw new ApiError('Call session expired', 410);
-      const r = await post<{ key: BookingReceipt['key']; status: BookingReceipt['status']; reference_id: string }>('/calls/keypress', 'farmer', { parcel_id: parcel, key: req.key });
-      return { referenceId: r.reference_id, key: r.key, status: r.status };
+      const r = await post<{ key: BookingReceipt['key']; status: BookingReceipt['status']; reference_id: string; slot?: BookingReceipt['slot'] }>('/calls/keypress', 'farmer', { parcel_id: parcel, key: req.key });
+      return { referenceId: r.reference_id, key: r.key, status: r.status, slot: r.slot ?? null };
     },
 
     getCitizenAreas: () => get<CitizenArea[]>('/aqi/communities', 'citizen'),

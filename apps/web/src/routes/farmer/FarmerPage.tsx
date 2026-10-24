@@ -129,10 +129,12 @@ export default function FarmerPage() {
                       <ol className="m-0 flex list-decimal flex-col gap-2 pb-2 pl-5 text-[#DCE9F5]">{s.lines.map((l) => <li key={l.id}>{l.text}</li>)}</ol>
                     </details>
 
-                    <div className="grid grid-cols-2 gap-3 text-center" aria-label={t('farmer.prices')} role="group">
-                      <div className="rounded-2xl bg-white/10 p-3"><div className="text-xs text-[#C9DDF0]">{t('farmer.priceSeeder')}</div><div className="mono text-lg font-bold">{formatInr(s.prices.superSeederPerAcre)}<span className="text-xs font-normal">/{t('farmer.acre')}</span></div></div>
-                      <div className="rounded-2xl bg-white/10 p-3"><div className="text-xs text-[#C9DDF0]">{t('farmer.priceStraw')}</div><div className="mono text-lg font-bold">{formatInr(s.prices.strawPerTonne)}<span className="text-xs font-normal">/{t('farmer.tonne')}</span></div></div>
-                    </div>
+                    {(s.prices.superSeederPerAcre !== null || s.prices.strawPerTonne !== null) && (
+                      <div className="grid grid-cols-2 gap-3 text-center" aria-label={t('farmer.prices')} role="group">
+                        {s.prices.superSeederPerAcre !== null && <div className="rounded-2xl bg-white/10 p-3"><div className="text-xs text-[#C9DDF0]">{t('farmer.priceSeeder')}</div><div className="mono text-lg font-bold">{formatInr(s.prices.superSeederPerAcre)}<span className="text-xs font-normal">/{t('farmer.acre')}</span></div></div>}
+                        {s.prices.strawPerTonne !== null && <div className="rounded-2xl bg-white/10 p-3"><div className="text-xs text-[#C9DDF0]">{t('farmer.priceStraw')}</div><div className="mono text-lg font-bold">{formatInr(s.prices.strawPerTonne)}<span className="text-xs font-normal">/{t('farmer.tonne')}</span></div></div>}
+                      </div>
+                    )}
 
                     <KeypadPanel book={book} onTone={(k) => playDtmf(k)} onConfirmed={onConfirmed} prices={s.prices} />
 

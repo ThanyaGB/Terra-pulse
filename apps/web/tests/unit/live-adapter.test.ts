@@ -29,6 +29,7 @@ function fakeClient(): { client: Client; calls: string[] } {
     token: async () => 't',
     get: vi.fn(async (path: string, _role, query) => { calls.push(path + (query ? `?${new URLSearchParams(query as Record<string, string>)}` : '')); return responses[path] as never; }),
     post: vi.fn(async () => ({}) as never),
+    download: vi.fn(async () => ({ blob: new Blob(['%PDF']), filename: 'advisory-DIR-1.pdf' })),
   };
   return { client, calls };
 }
@@ -58,7 +59,7 @@ describe('live adapter maps the spec API onto the UI contract', () => {
   it('pipeline health maps statuses and keeps the origin in the detail', async () => {
     const { client } = fakeClient();
     const h = await createLiveApi('http://x/v1', client).getHealth();
-    expect(h.items.find((i) => i.id === 'imd')).toMatchObject({ status: 'degraded' });
+    expect(h.items.find((i) => i.id === 'weather')).toMatchObject({ status: 'degraded' });
     expect(h.items.find((i) => i.id === 'firms')!.detail).toContain('368 hotspots');
     expect(h.cpcb).toEqual({ online: 9, total: 9 });
     expect(h.agents[0]).toMatchObject({ id: 'risk_agent', latencyMs: 12 });

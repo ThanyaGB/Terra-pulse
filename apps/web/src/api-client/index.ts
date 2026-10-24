@@ -19,6 +19,8 @@ export interface ProblemDetails {
 export interface Client {
   get<T>(path: string, role: Role, query?: Record<string, string | number | undefined>): Promise<T>;
   post<T>(path: string, role: Role, body?: unknown | FormData): Promise<T>;
+  /** GET a binary body (the signed advisory PDF) */
+  download(path: string, role: Role): Promise<{ blob: Blob; filename: string | null }>;
   token(role: Role): Promise<string>;
 }
 
@@ -73,6 +75,20 @@ export function createClient(baseUrl: string): Client {
   return {
     get: (path, role, query) => request('GET', path, role, undefined, query),
     post: (path, role, body) => request('POST', path, role, body),
+    async download(path, role) {
+      let res: Response;
+      try {
+        res = await fetch(`${base}${path}`, { headers: { Authorization: `Bearer ${await token(role)}` } });
+      } catch {
+        throw new ApiError('Network unreachable', 0);
+      }
+      if (!res.ok) {
+        let detail = '';
+        try { detail = ((await res.json()) as ProblemDetails).detail ?? ''; } catch { /* not JSON */ }
+        throw new ApiError(detail || `Request failed (${res.status})`, res.status);
+      }
+      return { blob: await res.blob(), filename: /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? null };
+    },
     token,
   };
 }

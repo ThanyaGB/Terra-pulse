@@ -17,6 +17,9 @@ import { useI18n } from '@/i18n';
 import { AlertsTimeline as Alerts } from './Alerts';
 import { AqiCard } from './AqiCard';
 import { CommutePlanner } from './CommutePlanner';
+import { Disclaimer } from './Disclaimer';
+import { PushAlerts } from './PushAlerts';
+import { DataAttribution } from '@/design-system/DataAttribution';
 import { AdviceList, ProfilePicker } from './HealthAdvice';
 import { InstallPrompt } from './InstallPrompt';
 import { LocationHeader } from './LocationHeader';
@@ -77,6 +80,7 @@ export default function CitizenPage() {
       <main id="main" ref={main} className="flex flex-1 flex-col gap-4 px-4 pb-28">
         <GrapBanner />
         <InstallPrompt />
+        <PushAlerts />
         {tab === 'air' && (
           <>
             <AsyncBoundary state={mergedSnap} onRetry={snap.reload} what={t('cz.aqi')} retryLabel={t('common.retry')} skeleton={<Skeleton className="h-[380px] w-full !rounded-3xl" />}>
@@ -99,11 +103,13 @@ export default function CitizenPage() {
             </section>
 
             {mergedSnap.status === 'success' && <Alerts alerts={mergedSnap.data.data.alerts} nowMin={nowMin} />}
+            <Disclaimer />
           </>
         )}
         {tab === 'route' && <CommutePlanner />}
         {tab === 'report' && <SnapReport areaId={areaId} />}
       </main>
+      <DataAttribution sources={['cpcb', 'cams', 'osm', 'firms']} className="mb-16" />
 
       <nav aria-label={t('nav.citizen')} className="fixed inset-x-0 bottom-0 z-30 mx-auto grid max-w-[480px] grid-cols-3 gap-1 border-t border-line bg-white/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur">
         {TABS.map((x) => {

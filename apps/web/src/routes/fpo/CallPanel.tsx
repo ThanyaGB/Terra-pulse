@@ -14,11 +14,13 @@ interface Props {
   busy: boolean;
   onCall: (f: Farmer) => void;
   onAssign: (f: Farmer, machine: Farmer['machineNeed']) => void;
+  /** TELEPHONY_ENABLED: calls stay disabled until gate G1 passes */
+  callsOn: boolean;
 }
 
 const OUTCOME: Record<string, string> = { answered: 'Answered', no_answer: 'No answer', queued: 'Queued' };
 
-export function CallPanel({ farmer, version, busy, onCall, onAssign }: Props) {
+export function CallPanel({ farmer, version, busy, onCall, onAssign, callsOn }: Props) {
   const state = useAsync(() => (farmer ? api.getCallDetails(farmer.id) : Promise.resolve(null)), [farmer?.id, version]);
 
   return (
@@ -84,7 +86,7 @@ export function CallPanel({ farmer, version, busy, onCall, onAssign }: Props) {
               </section>
 
               <div className="flex flex-wrap gap-3">
-                <button type="button" className="btn btn-navy" disabled={busy} onClick={() => onCall(farmer)}><IconPhone /> Trigger voice call</button>
+                <button type="button" className="btn btn-navy" disabled={busy || !callsOn} title={callsOn ? undefined : 'Calls are switched off (TELEPHONY_ENABLED)'} onClick={() => onCall(farmer)}><IconPhone /> Trigger voice call</button>
                 <button type="button" className="btn btn-primary" disabled={busy || farmer.status === 'dispatched' || !d.matchedResource}
                   onClick={() => d.matchedResource && onAssign(farmer, d.matchedResource.machineType)}>
                   {farmer.status === 'dispatched' ? 'Already assigned' : `Assign ${d.matchedResource ? MACHINE_LABEL[d.matchedResource.machineType] : 'machine'} on-site`}

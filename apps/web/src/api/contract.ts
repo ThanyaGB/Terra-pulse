@@ -54,7 +54,7 @@ export interface ComplianceResponse {
 }
 /** GET /system/health */
 export interface HealthItem {
-  id: 'firms' | 'cpcb' | 'imd' | 'agents';
+  id: 'firms' | 'cpcb' | 'weather' | 'agents';
   label: string;
   status: HealthStatus;
   detail: string;
@@ -86,7 +86,18 @@ export interface DirectiveReceipt {
   type: DirectiveType;
   issuedAt: string;
   /** diversions wait for a second policy officer (ADR-07) */
-  status: 'queued' | 'pending_approval' | 'dispatched';
+  status: 'pending_approval' | 'approved';
+  requiresSecondApprover: boolean;
+}
+/** GET /directives/:id/export. A signed PDF the officer sends through official channels; the platform sends nothing. */
+export interface DirectiveExport {
+  filename: string;
+  blob: Blob;
+}
+/** GET /config/public */
+export interface PublicConfig {
+  flags: { TELEPHONY_ENABLED: boolean; WHATSAPP_ENABLED: boolean; PUBLIC_ALERTS_ENABLED: boolean; ADVISORY_EXPORT_ENABLED: boolean; TTS_PROVIDER: string };
+  disclaimers: Record<string, Record<string, string>>;
 }
 
 /* ---------- 2. FPO (/fpo) ---------- */
@@ -101,7 +112,8 @@ export interface MachineryStatus {
 /** GET /fpo/biomass */
 export interface BiomassStatus {
   plant: string;
-  floorPriceInrPerTonne: number;
+  /** null unless an active partner contract backs the rate (ADR-17) */
+  floorPriceInrPerTonne: number | null;
   tonnesRemovedToday: number;
   cumulativeAcres: number;
   trucksToday: number;
@@ -168,7 +180,8 @@ export interface CallSession {
   /** optional recorded audio. When absent the UI voices the lines with speech synthesis. */
   audioUrl: string | null;
   lines: ScriptLine[];
-  prices: { superSeederPerAcre: number; strawPerTonne: number };
+  /** a null rate is not shown or spoken: no active partner contract backs it (ADR-17) */
+  prices: { superSeederPerAcre: number | null; strawPerTonne: number | null };
 }
 export type KeyAction = '1' | '2' | '9';
 /** POST /farmer/bookings */
@@ -180,7 +193,9 @@ export interface BookingRequest {
 export interface BookingReceipt {
   referenceId: string;
   key: KeyAction;
-  status: 'confirmed' | 'connecting';
+  /** key 9: 'queued' (staffed agronomist queue), 'callback_slot', or 'callback_unscheduled' (recorded, no time promised); 'connecting' is the demo mock */
+  status: 'confirmed' | 'connecting' | 'queued' | 'callback_slot' | 'callback_unscheduled';
+  slot?: { date: string; start: string } | null;
 }
 
 /* ---------- 4. Citizen (/citizen) ---------- */
@@ -294,6 +309,9 @@ export interface VayuApi {
   getHealth(): Promise<HealthResponse>;
   getDirectivePreview(type: DirectiveType): Promise<DirectivePreview>;
   issueDirective(type: DirectiveType, areaIds: string[]): Promise<DirectiveReceipt>;
+  approveDirective(id: string): Promise<DirectiveReceipt>;
+  exportDirective(id: string): Promise<DirectiveExport>;
+  getPublicConfig(): Promise<PublicConfig>;
 
   getMachinery(): Promise<MachineryStatus[]>;
   getBiomass(): Promise<BiomassStatus>;

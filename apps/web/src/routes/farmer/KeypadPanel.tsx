@@ -1,4 +1,4 @@
-import { useCallback, useReducer, useRef, type KeyboardEvent } from 'react';
+import { useCallback, useReducer, useRef, useState, type KeyboardEvent } from 'react';
 import type { BookingReceipt, KeyAction } from '@/api/contract';
 import { IconCheck, IconSpinner } from '@/design-system/Icons';
 import { useI18n, type MessageKey } from '@/i18n';
@@ -11,7 +11,8 @@ interface Props {
   onTone?: (key: KeyAction) => void;
   /** called once the booking succeeds, e.g. to speak the confirmation */
   onConfirmed?: (key: KeyAction, receipt: BookingReceipt) => void;
-  prices: { superSeederPerAcre: number; strawPerTonne: number };
+  /** null when no active partner contract backs the rate: the key is shown without a price */
+  prices: { superSeederPerAcre: number | null; strawPerTonne: number | null };
 }
 
 const META: Record<KeyAction, { label: MessageKey; sub: MessageKey; done: MessageKey }> = {
@@ -23,6 +24,7 @@ const META: Record<KeyAction, { label: MessageKey; sub: MessageKey; done: Messag
 export function KeypadPanel({ book, onTone, onConfirmed, prices }: Props) {
   const { t } = useI18n();
   const [state, dispatch] = useReducer(keypadReducer, { status: 'idle' } as KeypadState);
+  const [receipt9, setReceipt9] = useState<BookingReceipt | null>(null);
   const live = useRef<KeypadState>(state);
   live.current = state;
 
@@ -36,6 +38,7 @@ export function KeypadPanel({ book, onTone, onConfirmed, prices }: Props) {
       const receipt = await book(key);
       live.current = keypadReducer(live.current, { type: 'success', receipt });
       dispatch({ type: 'success', receipt });
+      if (key === '9') setReceipt9(receipt);
       onConfirmed?.(key, receipt);
     } catch {
       live.current = keypadReducer(live.current, { type: 'failure' });
@@ -49,13 +52,19 @@ export function KeypadPanel({ book, onTone, onConfirmed, prices }: Props) {
     if (isKeyAction(e.key)) { e.preventDefault(); void press(e.key); }
   };
 
+  const agronomistMessage = (r: BookingReceipt): string =>
+    r.status === 'queued' ? t('farmer.done9.queued')
+    : r.status === 'callback_slot' && r.slot ? t('farmer.done9.slot', { time: r.slot.start })
+    : r.status === 'callback_unscheduled' ? t('farmer.done9.noTime')
+    : t('farmer.done9');
   const message =
     state.status === 'pending' ? t('farmer.pending')
-    : state.status === 'confirmed' ? t(META[state.key].done)
+    : state.status === 'confirmed' ? (state.key === '9' && receipt9 ? agronomistMessage(receipt9) : t(META[state.key].done))
     : state.status === 'error' ? t('farmer.error')
     : '';
 
-  const priceText = (k: KeyAction) => k === '1' ? t('farmer.key1.sub', { price: prices.superSeederPerAcre }) : k === '2' ? t('farmer.key2.sub', { price: prices.strawPerTonne.toLocaleString('en-IN') }) : t(META[k].sub);
+  const priceText = (k: KeyAction) => k === '1' ? (prices.superSeederPerAcre === null ? t('farmer.key1.noPrice') : t('farmer.key1.sub', { price: prices.superSeederPerAcre }))
+    : k === '2' ? (prices.strawPerTonne === null ? t('farmer.key2.noPrice') : t('farmer.key2.sub', { price: prices.strawPerTonne.toLocaleString('en-IN') })) : t(META[k].sub);
 
   return (
     <div role="group" aria-label={t('farmer.keypad')} onKeyDown={onKeyDown} className="flex flex-col gap-3">

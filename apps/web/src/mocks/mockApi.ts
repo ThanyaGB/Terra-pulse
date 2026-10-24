@@ -1,5 +1,5 @@
 import type {
-  AssignmentReceipt, CompletionReceipt, CompletionRequest, WorkOrder, BookingReceipt, BookingRequest, CallDetails, CallReceipt, DirectivePreview, DirectiveReceipt,
+  AssignmentReceipt, CompletionReceipt, CompletionRequest, DirectiveExport, PublicConfig, WorkOrder, BookingReceipt, BookingRequest, CallDetails, CallReceipt, DirectivePreview, DirectiveReceipt,
   DirectiveType, Farmer, HealthProfile, Lang, MachineType, MachineryStatus, RealtimeEvent, ReportReceipt, ReportRequest,
   VayuApi,
 } from '@/api/contract';
@@ -10,6 +10,15 @@ import {
   WORK_ORDERS, citizenSnapshot, healthItems, makeFarmers,
 } from './fixtures';
 import { scriptFor } from './script';
+
+/** Simulated configuration. The demo plays a pilot where telephony has passed its gate; public alerts have not. */
+export const MOCK_CONFIG: PublicConfig = {
+  flags: { TELEPHONY_ENABLED: true, WHATSAPP_ENABLED: false, PUBLIC_ALERTS_ENABLED: false, ADVISORY_EXPORT_ENABLED: true, TTS_PROVIDER: 'prerecorded' },
+  disclaimers: {
+    citizen_advice: { en: 'This is environmental exposure guidance, not medical advice. If you feel unwell, speak to a doctor.' },
+    directive: { en: 'This advisory is a recommendation to the responsible authorities. The decision to act rests with them.' },
+  },
+};
 
 export type MockFlag = 'error' | 'empty' | 'slow' | null;
 
@@ -35,7 +44,7 @@ const id = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 
 const DIRECTIVES: Record<DirectiveType, Omit<DirectivePreview, 'type'>> = {
   grap_ii: {
     title: 'Issue GRAP-II alert',
-    action: 'Broadcast a Stage-II GRAP alert to all NCR enforcement agencies and publish a public advisory.',
+    action: 'Recommend a Stage-II GRAP alert to the NCR enforcement agencies.',
     affectedAreas: [
       { id: 'delhi', name: 'Delhi (all 11 districts)', detail: 'Dust control, parking fees, DG-set curbs' },
       { id: 'gurugram', name: 'Gurugram', detail: 'Construction dust enforcement' },
@@ -43,18 +52,18 @@ const DIRECTIVES: Record<DirectiveType, Omit<DirectivePreview, 'type'>> = {
       { id: 'ghaziabad', name: 'Ghaziabad', detail: 'Road sweeping and water sprinkling' },
       { id: 'noida', name: 'Noida / Greater Noida', detail: 'Construction dust enforcement' },
     ],
-    note: 'Alert is sent to state pollution control boards and municipal commissioners. It can be withdrawn later.',
+    note: 'This records the recommendation. The platform sends nothing: export the signed PDF and send it through official channels.',
   },
   diversion_trucks: {
     title: 'Issue diversion order for out-of-state diesel trucks',
-    action: 'Divert non-essential out-of-state diesel trucks away from Delhi to the peripheral expressways.',
+    action: 'Recommend that non-essential out-of-state diesel trucks be diverted away from Delhi to the peripheral expressways.',
     affectedAreas: [
       { id: 'singhu', name: 'Singhu / Kundli border', detail: 'NH-44, northbound entry' },
       { id: 'tikri', name: 'Tikri border', detail: 'NH-9, westbound entry' },
       { id: 'ghazipur', name: 'Ghazipur border', detail: 'NH-24, eastern entry' },
       { id: 'kmp', name: 'KMP / Eastern Peripheral Expressway', detail: 'Designated diversion route' },
     ],
-    note: 'Applies to non-CNG, non-BS-VI diesel goods vehicles without essential-goods exemption.',
+    note: 'Needs a second policy officer before it can be exported. Applies to non-CNG, non-BS-VI diesel goods vehicles without essential-goods exemption.',
   },
   fog_cannons: {
     title: 'Deploy fog cannons on heavy-pollution corridors',
@@ -76,6 +85,7 @@ export function createMockApi(): VayuApi {
   const callLogs = new Map<string, CallDetails['log']>();
   let reportCounter = 4200;
   const orders = new Map<string, WorkOrder>(WORK_ORDERS.map((w) => [w.id, { ...w }]));
+  const directives = new Map<string, DirectiveReceipt>();
   const completionByRequest = new Map<string, string>();   // clientRequestId -> work order id: a repeat sync must not complete twice
 
 
@@ -119,8 +129,29 @@ export function createMockApi(): VayuApi {
     getDirectivePreview: (type) => gate(true, () => ({ type, ...DIRECTIVES[type] })),
     issueDirective: (type, areaIds): Promise<DirectiveReceipt> => {
       void areaIds;
-      return gate(false, () => ({ id: id('DIR'), type, issuedAt: new Date().toISOString(), status: 'queued' as const }));
+      return gate(false, (): DirectiveReceipt => {
+        const two = type === 'diversion_trucks';   // ADR-07: a diversion waits for a second policy officer
+        const r: DirectiveReceipt = { id: id('DIR'), type, issuedAt: new Date().toISOString(), status: two ? 'pending_approval' : 'approved', requiresSecondApprover: two };
+        directives.set(r.id, r);
+        return { ...r };
+      });
     },
+    approveDirective: (did) => gate(false, (): DirectiveReceipt => {
+      const d = directives.get(did);
+      if (!d) throw new ApiError('Directive not found', 404);
+      if (d.status !== 'pending_approval') throw new ApiError('This directive is not waiting for approval', 409);
+      d.status = 'approved';   // the demo plays the second policy officer
+      return { ...d };
+    }),
+    exportDirective: (did) => gate(false, (): DirectiveExport => {
+      const d = directives.get(did);
+      if (!d) throw new ApiError('Directive not found', 404);
+      if (d.status !== 'approved') throw new ApiError('A directive can be exported only after approval', 409);
+      return { filename: `advisory-${did}.pdf`, blob: new Blob([`%PDF-1.4
+% demo advisory ${did} (simulated, unsigned)
+`], { type: 'application/pdf' }) };
+    }),
+    getPublicConfig: (): Promise<PublicConfig> => Promise.resolve(MOCK_CONFIG),
 
     getMachinery: () => gate(true, () => machinery.map((m) => ({ ...m })), () => []),
     getBiomass: () => gate(true, () => ({ ...BIOMASS })),

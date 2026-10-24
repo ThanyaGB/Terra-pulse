@@ -50,8 +50,12 @@ export function BiomassCard({ state, onRetry, extraTrucks, onAddTruck }: { state
       <AsyncBoundary state={state} onRetry={onRetry} what="biomass purchase figures">
         {(b) => (
           <div className="flex flex-col gap-3">
-            <div className="text-xs text-[#C9DDF0]">{b.plant} · current Bio-CNG floor price</div>
-            <div><span className="mono text-3xl font-bold text-white">{formatInr(b.floorPriceInrPerTonne)}</span><span className="ml-1 text-sm text-[#C9DDF0]">/tonne</span></div>
+            <div className="text-xs text-[#C9DDF0]">{b.plant}{b.floorPriceInrPerTonne !== null && ' · current Bio-CNG floor price'}</div>
+            {b.floorPriceInrPerTonne !== null ? (
+              <div><span className="mono text-3xl font-bold text-white" data-testid="floor-price">{formatInr(b.floorPriceInrPerTonne)}</span><span className="ml-1 text-sm text-[#C9DDF0]">/tonne</span></div>
+            ) : (
+              <p className="m-0 text-sm font-semibold text-[#FFD9A0]" data-testid="no-contract">No active buy-back contract, so no floor price is shown to farmers.</p>
+            )}
             <dl className="m-0 grid grid-cols-3 gap-3">
               <div><dd className="m-0 mono text-2xl font-bold text-[#34D399]">{formatNumber(b.tonnesRemovedToday + extraTrucks * TRUCK_TONNES, 1)}</dd><dt className="text-[11px] text-[#C9DDF0]">tonnes removed today</dt></div>
               <div><dd className="m-0 mono text-2xl font-bold text-white">{formatNumber(b.cumulativeAcres)}</dd><dt className="text-[11px] text-[#C9DDF0]">acres served (total)</dt></div>
@@ -75,7 +79,7 @@ export function EcoCreditsTile({ state, extraTrucks }: { state: AsyncState<Bioma
           return (
             <div className="flex flex-col gap-1">
               <div><span className="mono text-3xl font-bold text-leaf-700" aria-live="polite">{formatNumber(credits)}</span> <span className="text-sm text-ink-soft">credits today</span></div>
-              <div className="mono text-xs text-ink-soft">{formatNumber(tonnes, 1)} t × {CREDIT_PER_TONNE} credit/t = {formatNumber(credits)} credits ≈ {formatInr(Math.round(tonnes * b.floorPriceInrPerTonne))}</div>
+              <div className="mono text-xs text-ink-soft">{formatNumber(tonnes, 1)} t × {CREDIT_PER_TONNE} credit/t = {formatNumber(credits)} credits {b.floorPriceInrPerTonne !== null && <> ≈ {formatInr(Math.round(tonnes * b.floorPriceInrPerTonne))}</>}</div>
               <p className="m-0 mt-1 text-xs text-ink-mute">Illustrative formula for the prototype. The real credit scheme is not defined in the brief.</p>
             </div>
           );

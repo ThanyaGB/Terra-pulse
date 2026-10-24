@@ -1,6 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { api } from '@/api/client';
 import type { DirectiveReceipt, DirectiveType } from '@/api/contract';
+import { ApiError } from '@/api/errors';
+import { usePublicConfig } from '@/api/usePublicConfig';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/design-system/AsyncBoundary';
 import { ConfirmDialog } from '@/design-system/ConfirmDialog';
@@ -15,13 +17,22 @@ const BUTTONS: { type: DirectiveType; label: string; icon: ReactNode; tone: 'dan
   { type: 'fog_cannons', label: 'Deploy fog cannons on heavy-pollution corridors', icon: <IconWind />, tone: 'primary' },
 ];
 
-/** Bottom toolbar. Nothing is sent until the operator confirms in the modal. */
+/** Export is possible only for an approved directive, and only while the platform's export switch is on (ADR-14). */
+export function canExport(d: Pick<DirectiveReceipt, 'status'>, exportEnabled: boolean): boolean {
+  return d.status === 'approved' && exportEnabled;
+}
+
+/**
+ * Bottom toolbar. Nothing is recorded until the operator confirms in the modal. The platform records a recommendation and never
+ * sends it to anyone: once approved (a diversion needs a second policy officer), the officer downloads the signed PDF.
+ */
 export function DirectiveBar() {
   const [active, setActive] = useState<DirectiveType | null>(null);
   const [busy, setBusy] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [issued, setIssued] = useState<DirectiveReceipt[]>([]);
   const { toast } = useToast();
+  const exportEnabled = usePublicConfig().flags.ADVISORY_EXPORT_ENABLED;
   const preview = useAsync(() => (active ? api.getDirectivePreview(active) : Promise.resolve(null)), [active]);
 
   async function confirm() {
@@ -32,12 +43,37 @@ export function DirectiveBar() {
       const receipt = await api.issueDirective(active, preview.data.affectedAreas.map((a) => a.id));
       setIssued((l) => [receipt, ...l]);
       recordOrder(receipt, preview.data.title);
-      toast(`${preview.data.title}: queued (${receipt.id})`, 'success');
+      toast(`${preview.data.title}: recorded (${receipt.id})`, 'success');
       setActive(null);
     } catch {
-      setSendError('The directive was not sent. Nothing has changed. Please try again.');
+      setSendError('The recommendation was not recorded. Nothing has changed. Please try again.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function approve(d: DirectiveReceipt) {
+    try {
+      const r = await api.approveDirective(d.id);
+      setIssued((l) => l.map((x) => (x.id === r.id ? r : x)));
+      toast(`Approved (${r.id})`, 'success');
+    } catch (e) {
+      toast(e instanceof ApiError && e.status === 409 ? 'A different policy officer must approve this directive.' : 'Could not approve. Please try again.', 'error');
+    }
+  }
+
+  async function exportPdf(d: DirectiveReceipt) {
+    try {
+      const { blob, filename } = await api.exportDirective(d.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast(`Signed advisory downloaded (${d.id}). Send it through official channels.`, 'success');
+    } catch (e) {
+      toast(e instanceof ApiError && e.message ? e.message : 'Export failed. Please try again.', 'error');
     }
   }
 
@@ -52,14 +88,32 @@ export function DirectiveBar() {
           </button>
         ))}
         <div className="ml-auto text-xs text-air-200" aria-live="polite">
-          {last ? <>Last: <b>{last.type.replace(/_/g, ' ')}</b> queued {formatTime(last.issuedAt)} · <span className="mono">{last.id}</span></> : 'No directive sent this session.'}
+          {last ? <>Last: <b>{last.type.replace(/_/g, ' ')}</b> recorded {formatTime(last.issuedAt)} · <span className="mono">{last.id}</span></> : 'No directive sent this session.'}
         </div>
+        {issued.length > 0 && (
+          <ul className="m-0 flex w-full list-none flex-col gap-2 p-0" aria-label="Directives recorded this session">
+            {issued.map((d) => (
+              <li key={d.id} className="flex flex-wrap items-center gap-3 rounded-2xl bg-white/10 px-3 py-2 text-sm" data-testid="directive-row" data-status={d.status}>
+                <span className="mono">{d.id}</span>
+                <span className="font-semibold">{d.type.replace(/_/g, ' ')}</span>
+                <span className="chip" style={{ background: d.status === 'approved' ? '#E3F8EE' : '#FFF3D6', color: d.status === 'approved' ? '#0B5C3E' : '#7A4B00' }}>
+                  {d.status === 'approved' ? 'Approved' : 'Waiting for a second policy officer'}
+                </span>
+                {d.status === 'pending_approval' && <button type="button" className="btn !min-h-9" onClick={() => void approve(d)}>Approve</button>}
+                <button type="button" className="btn btn-primary !min-h-9 ml-auto" disabled={!canExport(d, exportEnabled)} onClick={() => void exportPdf(d)}
+                  title={!exportEnabled ? 'Advisory export is switched off (ADVISORY_EXPORT_ENABLED)' : d.status !== 'approved' ? 'Available after approval' : undefined}>
+                  Export signed PDF
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </nav>
 
       <ConfirmDialog
         open={active !== null}
         title={preview.status === 'success' && preview.data ? preview.data.title : 'Confirm directive'}
-        confirmLabel="Send directive"
+        confirmLabel="Record recommendation"
         tone={active === 'grap_ii' ? 'danger' : 'primary'}
         busy={busy}
         confirmDisabled={preview.status !== 'success'}

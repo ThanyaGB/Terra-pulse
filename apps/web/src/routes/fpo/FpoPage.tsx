@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
 import type { Farmer, FarmersResponse, MachineType, MachineryStatus } from '@/api/contract';
+import { usePublicConfig } from '@/api/usePublicConfig';
 import { useAsync, type AsyncState } from '@/hooks/useAsync';
+import { DataAttribution } from '@/design-system/DataAttribution';
 import { OfflineBanner } from '@/design-system/OfflineBanner';
 import { PageShell } from '@/design-system/PageShell';
 import { Tag } from '@/design-system/Tile';
@@ -40,6 +42,7 @@ export default function FpoPage() {
   const [version, setVersion] = useState(0);
   const [extraTrucks, setExtraTrucks] = useState(0);
   const { toast } = useToast();
+  const callsOn = usePublicConfig().flags.TELEPHONY_ENABLED;
 
   const selected: Farmer | null = farmers.status === 'success' ? farmers.data.farmers.find((f) => f.id === selectedId) ?? null : null;
 
@@ -87,13 +90,14 @@ export default function FpoPage() {
         </div>
         <div className="grid items-start gap-4 xl:grid-cols-12">
           <div className="xl:col-span-8">
-            <FarmerTable state={farmers} onRetry={farmers.reload} selectedId={selectedId} onSelect={setSelectedId} onCall={call} onAssign={(f) => assign(f)} busyId={busyId} />
+            <FarmerTable state={farmers} onRetry={farmers.reload} selectedId={selectedId} onSelect={setSelectedId} onCall={call} onAssign={(f) => assign(f)} busyId={busyId} callsOn={callsOn} />
           </div>
           <div className="xl:col-span-4">
-            <CallPanel farmer={selected} version={version} busy={busyId !== null} onCall={call} onAssign={assign} />
+            <CallPanel farmer={selected} version={version} busy={busyId !== null} onCall={call} onAssign={assign} callsOn={callsOn} />
           </div>
         </div>
       </PageShell>
+      <DataAttribution sources={['firms', 'sentinel2', 'cpcb']} />
     </>
   );
 }
