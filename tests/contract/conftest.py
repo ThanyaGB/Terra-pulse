@@ -10,7 +10,7 @@ from api.security import issue_token
 from api.settings import Settings
 from ingestion.pipeline import build_snapshot
 
-SETTINGS = Settings(env="dev", jwt_secret="test-secret-test-secret", data_mode="offline", photo_dir="var/test-photos", outbox_path=":memory:")
+SETTINGS = Settings(env="dev", jwt_secret="test-secret-test-secret", data_mode="offline", photo_dir="var/test-photos", outbox_path=":memory:", feature_overrides_path=None)
 
 
 @pytest.fixture(scope="session")

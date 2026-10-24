@@ -7,6 +7,8 @@ from dataclasses import dataclass
 
 import httpx
 
+from domain.data_sources import SourceRegistry, default_registry
+
 URL = "https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69"
 
 
@@ -31,7 +33,8 @@ def parse(payload: dict[str, object]) -> list[StationReading]:
 
 
 def fetch(api_key: str | None, states: tuple[str, ...] = ("Delhi", "Punjab", "Haryana"),
-          client: httpx.Client | None = None) -> list[StationReading] | None:
+          client: httpx.Client | None = None, registry: SourceRegistry | None = None) -> list[StationReading] | None:
+    (registry or default_registry()).require("cpcb")   # ADR-20
     if not api_key:
         return None
     readings: list[StationReading] = []

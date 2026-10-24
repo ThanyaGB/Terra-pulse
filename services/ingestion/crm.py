@@ -8,6 +8,8 @@ import threading
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from domain.data_sources import SourceRegistry, default_registry
+
 from .geo import VILLAGES, haversine_km
 
 MACHINE_TYPES = ("super_seeder", "baler", "happy_seeder")
@@ -39,9 +41,11 @@ class VersionConflict(Exception):
 class SimulatedCrm:
     seed: int = 2026
     machines: dict[str, Machine] = field(default_factory=dict)
+    registry: SourceRegistry = field(default_factory=default_registry, repr=False)
     _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
     def __post_init__(self) -> None:
+        self.registry.require("crm")   # ADR-20
         rnd = random.Random(self.seed)
         names = ["Gurmeet Singh", "Harpreet Singh", "Jaswinder Singh", "Balwinder Singh", "Sukhdev Singh", "Manjit Singh",
                  "Kuldeep Singh", "Paramjit Singh"]

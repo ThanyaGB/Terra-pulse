@@ -7,7 +7,9 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from . import cpcb, firms, geo, ndvi, openmeteo
+from domain.data_sources import default_registry
+
+from . import cams, cpcb, era5, firms, geo, ndvi, openmeteo
 from .calibration import fill_gaps
 from .clustering import FireCluster, cluster, fires_by_village
 from .quality import QualityTracker
@@ -26,6 +28,8 @@ class Snapshot:
     ndvi: dict[str, list[ndvi.NdviObs]]            # village id -> recent observations (newest first)
     quality: QualityTracker = field(default_factory=QualityTracker)
     fires_by_village: dict[str, int] = field(default_factory=dict)
+    era5: dict[str, openmeteo.Series] = field(default_factory=dict)   # place id -> recent observed meteorology (about 6 days behind)
+    cpcb_readings: list[cpcb.StationReading] | None = None            # None when no data.gov.in key / feed unavailable
 
     def now_index(self, series: openmeteo.Series) -> int:
         return hour_index(series, self.fetched_at)
@@ -38,15 +42,11 @@ def _local_hour_prefix(now: datetime) -> str:
 
 
 def _try_air(place: geo.Place, raw: RawStore | None, offline: bool) -> tuple[openmeteo.Series, str]:
-    if not offline:
-        try:
-            return openmeteo.fetch_air(place, raw), "live"
-        except Exception as exc:  # noqa: BLE001
-            log.warning("air fetch failed for %s: %s", place.id, exc)
-    return openmeteo.load_fixture(f"openmeteo_aq_{place.id}.json"), "fixture"
+    return cams.fetch_air(place, raw, offline=offline)   # CAMS connector; registry-checked, falls back to the recorded series
 
 
 def _try_wx(place: geo.Place, raw: RawStore | None, offline: bool) -> tuple[openmeteo.Series, str]:
+    default_registry().require("nwp")   # ADR-20
     if not offline:
         try:
             return openmeteo.fetch_weather(place, raw), "live"
@@ -77,6 +77,11 @@ def build_snapshot(raw: RawStore | None = None, *, offline: bool = False, live_n
             weather[v.id] = weather[near.id]
     q.record("cpcb", "live" if all(o == "live" for _, o in air_res) else "fixture", now)  # modelled CAMS stands in for CAAQMS
     q.record("weather", "live" if all(o == "live" for _, o in wx_res) else "fixture", now)
+    era5_places = [geo.SANGRUR, geo.AREAS[0]]
+    era5_res = [era5.fetch(p, raw, offline=offline, today=now.date()) for p in era5_places]
+    era5_series = {p.id: s for p, (s, _) in zip(era5_places, era5_res)}
+    q.record("era5", "live" if all(o == "live" for _, o in era5_res) else "fixture", now)
+    q.record("cams", "live" if all(o == "live" for _, o in air_res) else "fixture", now)
 
     # sensor/station availability, interpolation fraction (spec 6.3)
     for p, (s, _) in zip(geo.AREAS, air_res):
@@ -87,9 +92,10 @@ def build_snapshot(raw: RawStore | None = None, *, offline: bool = False, live_n
         if gaps and gaps < len(pm):
             s.values["pm2_5"], _ = fill_gaps(pm)  # type: ignore[assignment]
 
+    cpcb_readings: list[cpcb.StationReading] | None = None
     if data_gov_key and not offline:
         try:
-            cpcb.fetch(data_gov_key)
+            cpcb_readings = cpcb.fetch(data_gov_key)
             q.record("cpcb", "live", now)
         except Exception as exc:  # noqa: BLE001
             log.warning("CPCB data.gov.in failed: %s", exc)
@@ -107,7 +113,7 @@ def build_snapshot(raw: RawStore | None = None, *, offline: bool = False, live_n
         nd = ndvi.load_fixture()
         q.record("sentinel2", "fixture", now)
 
-    return Snapshot(now, hotspots, clusters, air, weather, nd, q, fires_by_village(clusters))
+    return Snapshot(now, hotspots, clusters, air, weather, nd, q, fires_by_village(clusters), era5_series, cpcb_readings)
 
 
 def hour_index(series: openmeteo.Series, now: datetime | None = None) -> int:

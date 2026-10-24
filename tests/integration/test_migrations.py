@@ -53,7 +53,7 @@ def test_migrations_up_and_down_on_a_clean_database():
     command.upgrade(cfg, "head")
     with eng.connect() as c:
         hts = {r[0] for r in c.execute(text("SELECT hypertable_name FROM timescaledb_information.hypertables"))}
-        assert hts == {"aqi_reading", "sensor_reading", "fire_hotspot", "machine_telemetry", "weather_obs"}
+        assert hts == {"aqi_reading", "sensor_reading", "fire_hotspot", "machine_telemetry", "weather_obs", "forecast_grid"}
         idx = {r[0] for r in c.execute(text("SELECT indexname FROM pg_indexes WHERE indexdef ILIKE '%gist%'"))}
         assert {"parcel_geom_gix", "village_geom_gix", "grid_geom_gix"} <= idx
     command.downgrade(cfg, "base")

@@ -1,0 +1,17 @@
+# Pilot baseline definition (ADR-21, T1.6). No Sangrur ground stations are used or needed.
+version: 1
+fire:
+  source: firms
+  region: sangrur_villages
+  years: [2023, 2024, 2025]
+  months: [10, 11]               # October-November burning season
+  village_radius_km: 12          # a hotspot is assigned to the nearest village within this radius
+cpcb:
+  source: cpcb
+  treated: [anand-vihar, patparganj]
+  control_candidates: [dwarka, rk-puram, punjabi-bagh, rohini, okhla, ito]
+  city: Delhi                    # every station must be in Delhi
+  pre_period_check:
+    max_slope_diff_ug_per_day: 1.5     # |treated slope - control slope| of the daily mean PM2.5
+    min_correlation: 0.6               # daily-mean correlation with the treated mean over the pre-period
+    min_days: 14

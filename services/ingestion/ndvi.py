@@ -11,6 +11,8 @@ from typing import Any
 
 import httpx
 
+from domain.data_sources import SourceRegistry, default_registry
+
 from .geo import Place
 
 STAC = "https://earth-search.aws.element84.com/v1/search"
@@ -67,13 +69,15 @@ def sample_ndvi(scene: dict[str, Any], place: Place, half_window: int = 5) -> fl
     return ndvi(means["red"], means["nir"])
 
 
-def observe(place: Place, scenes: int = 4) -> list[NdviObs]:
+def observe(place: Place, scenes: int = 4, registry: SourceRegistry | None = None) -> list[NdviObs]:
+    (registry or default_registry()).require("sentinel2")   # ADR-20
     out = []
     for sc in search_scenes(place, limit=scenes):
         out.append(NdviObs(sc["properties"]["datetime"][:10], round(sample_ndvi(sc, place), 4), sc["id"]))
     return out
 
 
-def load_fixture() -> dict[str, list[NdviObs]]:
+def load_fixture(registry: SourceRegistry | None = None) -> dict[str, list[NdviObs]]:
+    (registry or default_registry()).require("sentinel2")
     raw = json.loads(FIXTURE.read_text(encoding="utf8"))
     return {k: [NdviObs(**o) for o in v] for k, v in raw.items()}

@@ -10,6 +10,8 @@ from pathlib import Path
 
 import httpx
 
+from domain.data_sources import SourceRegistry, default_registry
+
 from .geo import REGION_BBOX
 from .rawstore import RawStore
 
@@ -47,8 +49,10 @@ def parse(csv_text: str, bbox: tuple[float, float, float, float] = REGION_BBOX) 
     return out
 
 
-def fetch(raw: RawStore | None = None, *, offline: bool = False, client: httpx.Client | None = None) -> tuple[list[Hotspot], str]:
-    """Returns (hotspots, source) where source is 'live' or 'fixture'."""
+def fetch(raw: RawStore | None = None, *, offline: bool = False, client: httpx.Client | None = None,
+          registry: SourceRegistry | None = None) -> tuple[list[Hotspot], str]:
+    """Returns (hotspots, source) where source is 'live' or 'fixture'. Refuses to run if 'firms' is not registered (ADR-20)."""
+    (registry or default_registry()).require("firms")
     text, source = None, "fixture"
     if not offline:
         try:
