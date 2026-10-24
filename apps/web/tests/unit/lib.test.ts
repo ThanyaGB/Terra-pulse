@@ -21,7 +21,7 @@ describe('maskPhone', () => {
 });
 
 describe('riskTier', () => {
-  it.each([[0, 'low'], [39, 'low'], [40, 'medium'], [69, 'medium'], [70, 'high'], [84, 'high'], [85, 'critical'], [100, 'critical']])('score %i is %s', (s, id) => {
+  it.each([[0, 'low'], [34, 'low'], [35, 'medium'], [59, 'medium'], [60, 'high'], [79, 'high'], [80, 'critical'], [100, 'critical']])('score %i is %s (spec 6.1: 35, 60, 80, mirrored from config/risk_weights.yaml)', (s, id) => {
     expect(riskTier(s).id).toBe(id);
   });
   it('has all four tiers in ascending order', () => expect(RISK_TIERS.map((t) => t.id)).toEqual(['low', 'medium', 'high', 'critical']));

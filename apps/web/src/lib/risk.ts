@@ -11,9 +11,9 @@ export interface RiskTierStyle {
 
 export const RISK_TIERS: readonly RiskTierStyle[] = [
   { id: 'low', label: 'Low', min: 0, bg: '#E3F8EE', fg: '#0B5C3E' },
-  { id: 'medium', label: 'Medium', min: 40, bg: '#FFF3C4', fg: '#6B4E00' },
-  { id: 'high', label: 'High', min: 70, bg: '#FFD9B8', fg: '#8A3A00' },
-  { id: 'critical', label: 'Critical', min: 85, bg: '#C62828', fg: '#FFFFFF' },
+  { id: 'medium', label: 'Medium', min: 35, bg: '#FFF3C4', fg: '#6B4E00' },
+  { id: 'high', label: 'High', min: 60, bg: '#FFD9B8', fg: '#8A3A00' },
+  { id: 'critical', label: 'Critical', min: 80, bg: '#C62828', fg: '#FFFFFF' },
 ];
 
 export function riskTier(score: number): RiskTierStyle {

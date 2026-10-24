@@ -19,3 +19,12 @@ def test_admin_endpoint_two_person_flow_and_audit(client, H):
     actions = [e.action for e in client.app.state.platform.audit.entries()]
     assert "flag.change_requested" in actions and "flag.changed" in actions
     assert client.get("/v1/config/public", headers=H("citizen")).json()["flags"]["PUBLIC_ALERTS_ENABLED"] is True
+
+
+def test_with_no_overrides_the_running_app_holds_the_spec_defaults(client, H):
+    """T0.4 acceptance: a fresh app, no admin change, no overrides file."""
+    flags = {f["name"]: f["value"] for f in client.get("/v1/admin/features", headers=H("admin")).json()["flags"]}
+    assert flags["TELEPHONY_ENABLED"] is False and flags["WHATSAPP_ENABLED"] is False and flags["PUBLIC_ALERTS_ENABLED"] is False
+    assert flags["TTS_PROVIDER"] == "prerecorded" and flags["ADVISORY_EXPORT_ENABLED"] is True and flags["CALIBRATION_MODE"] is False
+    pub = client.get("/v1/config/public", headers=H("citizen")).json()
+    assert pub["flags"]["PUBLIC_ALERTS_ENABLED"] is False and "citizen_advice" in pub["disclaimers"]

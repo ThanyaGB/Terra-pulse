@@ -9,7 +9,7 @@ from integrations.biocng import BioCngPartner, CollectionRequest, LedgerEntry, R
 from integrations.machinery_crm import CrmSync
 from integrations.mcd import NullNotifier
 from integrations.telephony import FakeProvider, TelephonyAdapter, TwilioProvider
-from integrations.whatsapp import TemplateNotApproved, TemplateRegistry, WhatsAppSender
+from integrations.whatsapp import TemplateNotApproved, TemplateRegistry, WhatsAppDisabled, WhatsAppSender
 
 
 def test_failover_after_three_failures_and_in_progress_calls_survive():
@@ -86,12 +86,28 @@ def test_whatsapp_rejects_unapproved_templates_and_sends_approved():
     def handler(req: httpx.Request) -> httpx.Response:
         seen.append(req.content)
         return httpx.Response(200, json={"messages": [{"id": "wamid.1"}]})
-    s = WhatsAppSender("123", "tok", reg, client=httpx.Client(transport=httpx.MockTransport(handler)))
+    s = WhatsAppSender("123", "tok", reg, client=httpx.Client(transport=httpx.MockTransport(handler)), enabled=lambda: True)
     with pytest.raises(TemplateNotApproved):
         s.send_template("919814000000", "free_text_promo", "pa", [])
     with pytest.raises(TemplateNotApproved):
         s.send_template("919814000000", "harvest_reminder", "en", [])
     assert s.send_template("919814000000", "harvest_reminder", "pa", ["Gurpreet"]) == "wamid.1" and len(seen) == 1
+
+
+def test_whatsapp_flag_off_means_no_send_and_no_network_call():
+    reg = TemplateRegistry()
+    reg.approve("harvest_reminder", {"pa"})
+    seen = []
+    client = httpx.Client(transport=httpx.MockTransport(lambda req: seen.append(req) or httpx.Response(200, json={"messages": [{"id": "x"}]})))
+    off = WhatsAppSender("123", "tok", reg, client=client)                       # default: OFF
+    with pytest.raises(WhatsAppDisabled):
+        off.send_template("919814000000", "harvest_reminder", "pa", ["Gurpreet"])
+    from domain.features import FeatureFlags
+    flags = FeatureFlags.load()
+    wired = WhatsAppSender("123", "tok", reg, client=client, enabled=lambda: flags.enabled("WHATSAPP_ENABLED"))
+    with pytest.raises(WhatsAppDisabled):
+        wired.send_template("919814000000", "harvest_reminder", "pa", ["Gurpreet"])
+    assert seen == []
 
 
 def test_concurrent_booking_one_success_one_conflict():
