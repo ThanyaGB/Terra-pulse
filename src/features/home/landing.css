@@ -1,0 +1,74 @@
+
+.lp *{box-sizing:border-box}
+:where(.lp) a{color:#0F6FB8}:where(.lp) a:hover{color:#0B1D33}
+.lp{font-family:Inter,"Noto Sans",system-ui,sans-serif;color:#0B1D33;font-size:16px;line-height:1.55}
+.lp-mono{font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-variant-numeric:tabular-nums}
+.lp-disp{font-family:"Bebas Neue","Poppins",Impact,sans-serif;font-weight:400;letter-spacing:.01em}
+.lp-pop{font-family:Poppins,Inter,system-ui,sans-serif;font-weight:700;letter-spacing:-.01em}
+.lp-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.lp-glass{background:rgba(255,255,255,.65);backdrop-filter:blur(16px) saturate(150%);-webkit-backdrop-filter:blur(16px) saturate(150%);border:1px solid rgba(255,255,255,.75);box-shadow:0 20px 60px rgba(79,179,255,.2)}
+.lp-glass-d{background:rgba(15,42,71,.66);backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid rgba(143,211,255,.18);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.lp-card{position:relative;overflow:hidden;border-radius:24px;transition:transform 320ms cubic-bezier(.22,1,.36,1),box-shadow 320ms cubic-bezier(.22,1,.36,1)}
+.lp-card:hover{transform:translateY(-4px)}
+.lp-card::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.35) 50%,transparent 62%);transform:translateX(-110%);transition:transform 1000ms cubic-bezier(.22,1,.36,1);pointer-events:none}
+.lp-card:hover::after{transform:translateX(110%)}
+.lp-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 20px;border-radius:999px;font:600 14px/1.25 Inter,system-ui,sans-serif;text-decoration:none;cursor:pointer;border:0;transition:transform 180ms cubic-bezier(.22,1,.36,1),background 320ms,box-shadow 320ms}
+.lp-btn:active{transform:scale(.96)}
+.lp-btn-g{background:#0E8F62;color:#fff;box-shadow:0 10px 30px rgba(16,185,129,.35)}
+.lp-btn-g:hover{background:#0B7A53;color:#fff}
+.lp-btn-w{background:rgba(255,255,255,.85);color:#0B1D33;border:1px solid rgba(11,29,51,.12)}
+.lp-btn-w:hover{background:#fff;color:#0B1D33}
+.lp-btn-o{background:transparent;color:#DFF3FF;border:1px solid rgba(223,243,255,.45)}
+.lp-btn-o:hover{background:rgba(223,243,255,.1);color:#fff}
+.lp-tag{display:inline-block;font:700 10px/1.6 "JetBrains Mono",monospace;letter-spacing:.08em;text-transform:uppercase;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.lp-chip{display:inline-flex;align-items:center;gap:6px;font:600 12px/1 Inter,sans-serif;padding:6px 10px;border-radius:12px;white-space:nowrap}
+.lp-eyebrow{font:700 12px/1 "JetBrains Mono",monospace;letter-spacing:.14em;text-transform:uppercase}
+.lp-word{display:inline-block;margin-right:.24em;animation:lp-rise 1000ms cubic-bezier(.22,1,.36,1) backwards}
+.lp-reveal{animation:lp-rise 1000ms cubic-bezier(.22,1,.36,1) backwards}
+.lp-pulse{transform-box:fill-box;transform-origin:center;animation:lp-pulse 1.8s ease-out infinite}
+.lp-breathe{transform-box:fill-box;transform-origin:center;animation:lp-breathe 2.6s ease-in-out infinite}
+.lp-spin{transform-origin:260px 300px;animation:lp-spin 26s linear infinite}
+.lp-flow{stroke-dasharray:6 10;animation:lp-dash 1.4s linear infinite}
+.lp-plume{transform-box:fill-box;animation:lp-plume 7s ease-in infinite}
+.lp-wind{animation:lp-windblink 2.4s ease-in-out infinite}
+.lp-hot{animation:lp-hot 1.6s ease-in-out infinite}
+.lp-stagebtn{transition:background 320ms,color 320ms,border-color 320ms}
+.lp-cell{transition:background 1000ms cubic-bezier(.22,1,.36,1)}
+.lp-bar{transition:width 1000ms cubic-bezier(.22,1,.36,1),background 1000ms}
+.lp-dotlink{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:12px;text-decoration:none;color:#0B1D33;font:600 12px/1 Inter,sans-serif;min-height:36px}
+.lp-dotlink:hover{background:rgba(79,179,255,.15);color:#0B1D33}
+.lp-menu a{display:block;padding:10px 12px;border-radius:12px;text-decoration:none;color:#0B1D33;font-size:14px}
+.lp-menu a:hover{background:rgba(79,179,255,.14);color:#0B1D33}
+.lp-sbar{transform-origin:bottom;animation:lp-sbar 900ms ease-in-out infinite alternate}
+.lp input[type=range]{accent-color:#0E8F62}
+
+/* ===== Scroll film: overlays driven by --p (0 → 1); the scene itself is painted on <canvas> ===== */
+.lp-stage{--p:0}
+.lp-fill{position:absolute;inset:0}
+.lp-cap{--t:clamp(0, min(calc((var(--p) - var(--a)) * 40), calc((var(--b) - var(--p)) * 40)), 1);opacity:var(--t);transform:translateY(calc((1 - var(--t)) * 24px))}
+.lp-scrim{background:linear-gradient(180deg,rgba(6,18,32,0) 0%,rgba(6,18,32,.62) 100%)}
+.lp-win{--k:30;opacity:clamp(0, min(calc((var(--p) - var(--a)) * var(--k)), calc((var(--b) - var(--p)) * var(--k))), 1)}
+.lp-lb{opacity:calc(1 - clamp(0, calc((var(--p) - .885) * 14), 1))}
+.lp-track{width:calc(clamp(0, calc((var(--p) - .215) / .67), 1) * 100%)}
+.lp-hint{opacity:clamp(0, calc((.035 - var(--p)) * 30), 1)}
+.lp-ftitle{top:max(84px, calc(40% - min(16vw, min(100vh, 1000px) * .26, 240px) * 1.32))}
+.lp-fsub{top:calc(40% + min(16vw, min(100vh, 1000px) * .26, 240px) * 1.0)}
+
+@keyframes lp-rise{from{opacity:0;transform:translateY(60px)}to{opacity:1;transform:none}}
+@keyframes lp-pulse{0%{transform:scale(.6);opacity:.9}100%{transform:scale(2.6);opacity:0}}
+@keyframes lp-breathe{0%,100%{transform:scale(1);opacity:.55}50%{transform:scale(1.35);opacity:.15}}
+@keyframes lp-spin{to{transform:rotate(360deg)}}
+@keyframes lp-dash{to{stroke-dashoffset:-32}}
+@keyframes lp-plume{0%{transform:translate(0,0) scale(.6);opacity:0}12%{opacity:.7}100%{transform:translate(300px,170px) scale(2.1);opacity:0}}
+@keyframes lp-windblink{0%,100%{opacity:.25}50%{opacity:.9}}
+@keyframes lp-hot{0%,100%{box-shadow:0 0 0 0 rgba(255,138,61,.9)}50%{box-shadow:0 0 0 5px rgba(255,138,61,0)}}
+@keyframes lp-sbar{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
+@keyframes lp-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(8px)}}
+@keyframes lp-ember{0%{transform:translateY(0);opacity:0}20%{opacity:.9}100%{transform:translateY(-260px);opacity:0}}
+@media (prefers-reduced-motion: reduce){.lp *,.lp *::before,.lp *::after{animation-duration:1ms!important;animation-iteration-count:1!important;transition-duration:1ms!important}.lp-cap{filter:none}}
+
+/* reveal-on-scroll: elements wait (paused at their "from" frame) until the IntersectionObserver adds .lp-in */
+.lp-word,.lp-reveal{animation-play-state:paused}
+.lp-word.lp-in,.lp-reveal.lp-in{animation-play-state:running}
+.lp [id]{scroll-margin-top:80px}
+.lp-nav-links{display:flex;gap:2px;margin:0 auto;flex-wrap:wrap}

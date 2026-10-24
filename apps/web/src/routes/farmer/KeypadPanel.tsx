@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useReducer, useRef, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useReducer, useRef, useState, type KeyboardEvent } from 'react';
 import type { BookingReceipt, KeyAction } from '@/api/contract';
 import { IconCheck, IconSpinner } from '@/design-system/Icons';
 import { useI18n, type MessageKey } from '@/i18n';
-import { BACK_KEY, CONFIRM_KEY, KEYS, digitAction, keypadReducer, type KeypadState } from './keypadFlow';
+import { BACK_KEY, CONFIRM_KEY, digitAction, keypadReducer, type KeypadState } from './keypadFlow';
 
 interface Props {
   /** performs the booking API call; called only after the farmer confirms with 1 */
   book: (key: KeyAction) => Promise<BookingReceipt>;
-  /** keypad tone, called on every accepted press (including 0) */
+  /** keypad tone, called on every press (every key beeps, like a real phone) */
   onTone?: (digit: string) => void;
   /** called when a menu key is chosen, e.g. to speak "You chose ... Press 1 to confirm" */
   onChoose?: (key: KeyAction) => void;
@@ -19,30 +19,30 @@ interface Props {
   prices: { superSeederPerAcre: number | null; strawPerTonne: number | null };
 }
 
-const META: Record<KeyAction, { label: MessageKey; done: MessageKey }> = {
-  '1': { label: 'farmer.key1', done: 'farmer.done1' },
-  '2': { label: 'farmer.key2', done: 'farmer.done2' },
-  '9': { label: 'farmer.key9', done: 'farmer.done9' },
+const META: Record<KeyAction, { label: MessageKey; short: MessageKey; done: MessageKey }> = {
+  '1': { label: 'farmer.key1', short: 'farmer.key1.short', done: 'farmer.done1' },
+  '2': { label: 'farmer.key2', short: 'farmer.key2.short', done: 'farmer.done2' },
+  '9': { label: 'farmer.key9', short: 'farmer.key9.short', done: 'farmer.done9' },
 };
 
-const Digit = ({ children, bg }: { children: ReactNode; bg: string }) => (
-  <span className="mono flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-3xl font-bold" style={{ background: bg, color: '#fff' }} aria-hidden="true">{children}</span>
-);
+/** Standard phone layout. */
+const PAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '*', '0', '#'] as const;
 
 export function KeypadPanel({ book, onTone, onChoose, onBack, onConfirmed, prices }: Props) {
   const { t } = useI18n();
   const [state, dispatch] = useReducer(keypadReducer, { status: 'idle' } as KeypadState);
   const [receipt9, setReceipt9] = useState<BookingReceipt | null>(null);
+  const [deadKey, setDeadKey] = useState(false); // a key that does nothing in this step was pressed
   const live = useRef<KeypadState>(state);
   live.current = state;
-  const confirmRef = useRef<HTMLButtonElement>(null);
   const groupRef = useRef<HTMLDivElement>(null);
 
   const press = useCallback(async (digit: string) => {
     const action = digitAction(live.current, digit);
-    if (!action) return;
+    if (!action) { onTone?.(digit); setDeadKey(true); return; } // beeps like a real phone, but nothing happens
     const next = keypadReducer(live.current, action);
     if (next === live.current) return; // ignored: in flight, or already confirmed
+    setDeadKey(false);
     live.current = next;
     dispatch(action);
     onTone?.(digit);
@@ -62,17 +62,16 @@ export function KeypadPanel({ book, onTone, onChoose, onBack, onConfirmed, price
     }
   }, [book, onTone, onChoose, onBack, onConfirmed]);
 
-  // move focus with the step so keyboard and screen-reader users land on the next thing to press
+  // move focus with the step so keyboard and screen-reader users land on the next key to press
   const confirming = state.status === 'confirming';
   useEffect(() => {
-    if (confirming) confirmRef.current?.focus();
-    else if (state.status === 'idle' && state.note === 'back') groupRef.current?.querySelector<HTMLButtonElement>('[data-key="1"]')?.focus();
-  }, [confirming, state]);
+    if (confirming) groupRef.current?.querySelector<HTMLButtonElement>(`[data-key="${CONFIRM_KEY}"]`)?.focus();
+  }, [confirming]);
 
-  // keyboard: digits work like the on-screen keys (1/2/9, then 1 or 0)
+  // physical keyboard: digits, * and # work like the on-screen keys
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    if (digitAction(live.current, e.key)) { e.preventDefault(); void press(e.key); }
+    if ((PAD as readonly string[]).includes(e.key)) { e.preventDefault(); void press(e.key); }
   };
 
   // key 9: what the FPO desk could actually offer (ADR-22): a live queue, a callback slot, or no promised time
@@ -86,79 +85,71 @@ export function KeypadPanel({ book, onTone, onChoose, onBack, onConfirmed, price
     : state.status === 'pending' ? t('farmer.pending')
     : state.status === 'confirmed' ? (state.key === '9' && receipt9 ? fpoWorkerMessage(receipt9) : t(META[state.key].done))
     : state.status === 'error' ? t('farmer.error')
+    : deadKey ? t('farmer.deadKey')
     : state.note === 'back' ? t('farmer.backNote')
     : '';
 
   const priceText = (k: KeyAction) => k === '1' ? (prices.superSeederPerAcre === null ? t('farmer.key1.noPrice') : t('farmer.key1.sub', { price: prices.superSeederPerAcre }))
     : k === '2' ? (prices.strawPerTonne === null ? t('farmer.key2.noPrice') : t('farmer.key2.sub', { price: prices.strawPerTonne.toLocaleString('en-IN') })) : t('farmer.key9.sub');
-  const keyBtn = 'flex min-h-[76px] w-full items-center gap-4 rounded-3xl border-2 px-4 py-3 text-left transition-colors disabled:opacity-50';
+
+  /** What one key looks like and says in the current step. */
+  const keyInfo = (d: string): { label: string; sub: string; active: boolean; tone: 'menu' | 'confirm' | 'back' | 'done' | 'error' | 'off'; busy: boolean } => {
+    if (state.status === 'confirming') {
+      if (d === CONFIRM_KEY) return { label: `${t('farmer.press', { key: d })}: ${t('farmer.confirm')}, ${t(META[state.key].label)}`, sub: t('farmer.confirm.short'), active: true, tone: 'confirm', busy: false };
+      if (d === BACK_KEY) return { label: `${t('farmer.press', { key: d })}: ${t('farmer.back')}`, sub: t('farmer.back.short'), active: true, tone: 'back', busy: false };
+      return { label: t('farmer.press', { key: d }), sub: '', active: false, tone: 'off', busy: false };
+    }
+    if (d === '1' || d === '2' || d === '9') {
+      const isThis = 'key' in state && state.key === d;
+      const tone = state.status === 'confirmed' && isThis ? 'done' : state.status === 'error' && isThis ? 'error' : 'menu';
+      return { label: `${t('farmer.press', { key: d })}: ${t(META[d].label)}, ${priceText(d)}`, sub: t(META[d].short), active: true, tone, busy: state.status === 'pending' && isThis };
+    }
+    return { label: t('farmer.press', { key: d }), sub: '', active: false, tone: 'off', busy: false };
+  };
+
+  const STYLE: Record<string, { bg: string; border: string; sub: string }> = {
+    menu: { bg: 'rgb(16 185 129 / 0.16)', border: 'rgb(52 211 153 / 0.65)', sub: '#7EE0C0' },
+    confirm: { bg: '#0B7A53', border: '#34D399', sub: '#D1FAE5' },
+    back: { bg: 'rgb(251 191 36 / 0.16)', border: 'rgb(251 191 36 / 0.7)', sub: '#FCD9A8' },
+    done: { bg: '#0B7A53', border: '#34D399', sub: '#D1FAE5' },
+    error: { bg: '#8A1C1C', border: '#FCA5A5', sub: '#FECACA' },
+    off: { bg: 'rgb(255 255 255 / 0.06)', border: 'rgb(255 255 255 / 0.10)', sub: 'transparent' },
+  };
 
   return (
     <div ref={groupRef} role="group" aria-label={t('farmer.keypad')} onKeyDown={onKeyDown} className="flex flex-col gap-3">
-      <p className="m-0 text-sm text-[#C9DDF0]">{t('farmer.keypadHint')}</p>
-      {state.status === 'confirming' ? (
-        <section aria-label={t('farmer.youChose')} className="flex flex-col gap-3 rounded-3xl bg-white/10 p-3" data-testid="confirm-step">
-          <p className="m-0 px-1 text-center text-base text-[#C9DDF0]">
-            {t('farmer.youChose')}: <span className="font-bold text-white">{t(META[state.key].label)}</span>
-          </p>
-          <button
-            ref={confirmRef}
-            type="button"
-            data-confirm={CONFIRM_KEY}
-            aria-label={`${t('farmer.press', { key: CONFIRM_KEY })}: ${t('farmer.confirm')}, ${t(META[state.key].label)}`}
-            onClick={() => void press(CONFIRM_KEY)}
-            className={keyBtn}
-            style={{ background: '#0B7A53', color: '#FFFFFF', borderColor: '#34D399' }}
-          >
-            <Digit bg="rgb(255 255 255 / 0.18)">{CONFIRM_KEY}</Digit>
-            <span className="text-xl font-bold leading-tight">{t('farmer.confirm')}</span>
-          </button>
-          <button
-            type="button"
-            data-confirm={BACK_KEY}
-            aria-label={`${t('farmer.press', { key: BACK_KEY })}: ${t('farmer.back')}`}
-            onClick={() => void press(BACK_KEY)}
-            className={keyBtn}
-            style={{ background: '#FFFFFF', color: '#0B1D33', borderColor: 'transparent' }}
-          >
-            <Digit bg="#0F2A47">{BACK_KEY}</Digit>
-            <span className="text-xl font-bold leading-tight">{t('farmer.back')}</span>
-          </button>
-        </section>
-      ) : (
-        KEYS.map((k) => {
-          const isThis = 'key' in state && state.key === k;
-          const pending = state.status === 'pending' && isThis;
-          const confirmed = state.status === 'confirmed' && isThis;
-          const failed = state.status === 'error' && isThis;
+      {state.status === 'confirming' && (
+        <p className="m-0 rounded-2xl bg-white/10 px-4 py-2 text-center text-base text-[#C9DDF0]" data-testid="confirm-step">
+          {t('farmer.youChose')}: <span className="font-bold text-white">{t(META[state.key].label)}</span>
+        </p>
+      )}
+      <div className="grid grid-cols-3 gap-3">
+        {PAD.map((d) => {
+          const k = keyInfo(d);
+          const s = STYLE[k.tone];
+          const disabled = state.status === 'pending' && !k.busy;
           return (
             <button
-              key={k}
+              key={d}
               type="button"
-              data-key={k}
-              data-state={pending ? 'pending' : confirmed ? 'confirmed' : failed ? 'error' : 'idle'}
-              disabled={state.status === 'pending' && !isThis}
-              aria-busy={pending}
-              aria-label={`${t('farmer.press', { key: k })}: ${t(META[k].label)}, ${priceText(k)}`}
-              onClick={() => void press(k)}
-              className={keyBtn}
-              style={{
-                background: confirmed ? '#0B7A53' : failed ? '#8A1C1C' : '#FFFFFF',
-                color: confirmed || failed ? '#FFFFFF' : '#0B1D33',
-                borderColor: confirmed ? '#34D399' : failed ? '#FCA5A5' : 'transparent',
-              }}
+              data-key={d}
+              data-active={k.active}
+              data-state={k.busy ? 'pending' : k.tone === 'done' ? 'confirmed' : k.tone === 'error' ? 'error' : 'idle'}
+              disabled={disabled}
+              aria-busy={k.busy}
+              aria-label={k.label}
+              onClick={() => void press(d)}
+              className="flex min-h-[72px] flex-col items-center justify-center rounded-2xl border-2 px-1 py-2 text-white transition-colors active:scale-95 disabled:opacity-50"
+              style={{ background: s.bg, borderColor: s.border }}
             >
-              <Digit bg={confirmed || failed ? 'rgb(255 255 255 / 0.18)' : '#0F2A47'}>
-                {pending ? <IconSpinner size={28} /> : confirmed ? <IconCheck size={30} /> : k}
-              </Digit>
-              <span className="flex flex-col">
-                <span className="text-lg font-bold leading-tight">{t(META[k].label)}</span>
-                <span className="mono text-sm font-semibold" style={{ opacity: 0.85 }}>{priceText(k)}</span>
+              <span className="mono text-3xl font-bold leading-none" aria-hidden="true">
+                {k.busy ? <IconSpinner size={26} /> : k.tone === 'done' ? <IconCheck size={28} /> : d}
               </span>
+              <span className="mt-1 min-h-[1rem] text-center text-xs font-semibold leading-tight" style={{ color: s.sub }} aria-hidden="true">{k.sub}</span>
             </button>
           );
-        })
-      )}
+        })}
+      </div>
       <div role="status" aria-live="assertive" className="min-h-[3.25rem] rounded-2xl px-4 py-3 text-base font-semibold" style={{ background: state.status === 'error' ? '#FDE8E8' : state.status === 'confirmed' ? '#E3F8EE' : state.status === 'confirming' ? '#FFF6DB' : 'transparent', color: state.status === 'error' ? '#8A1C1C' : state.status === 'confirming' ? '#5C4300' : state.status === 'idle' ? '#C9DDF0' : '#0B5C3E' }} data-testid="keypad-status">
         {message}
         {state.status === 'confirmed' && <span className="mono ml-2 text-sm font-normal">{t('farmer.ref')}: {state.referenceId}</span>}

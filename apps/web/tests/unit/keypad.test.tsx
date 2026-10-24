@@ -71,12 +71,21 @@ function setup(book = vi.fn(async (k: KeyAction) => receipt(k))) {
 }
 
 describe('KeypadPanel flow', () => {
-  it('offers exactly the three menu keys with prices, each as a labelled button', () => {
+  it('shows a full 12-key phone pad; 1, 2 and 9 are the active, labelled menu keys', () => {
     setup();
     expect(screen.getByRole('button', { name: /Press 1: Lock Super Seeder, ₹750 per acre/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Press 2: Request straw collection, ₹1,650 per tonne/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Press 9: Talk to an FPO worker/ })).toBeInTheDocument();
-    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(screen.getAllByRole('button')).toHaveLength(12);
+    expect(screen.getByRole('button', { name: 'Press 5' })).toHaveAttribute('data-active', 'false');
+  });
+
+  it('a key that does nothing beeps but books nothing', async () => {
+    const { book, onTone, user } = setup();
+    await user.click(screen.getByRole('button', { name: 'Press 5' }));
+    expect(onTone).toHaveBeenCalledWith('5');
+    expect(book).not.toHaveBeenCalled();
+    expect(screen.getByTestId('keypad-status')).toHaveTextContent('That key does nothing here');
   });
 
   it('shows the key without a price when no partner contract backs the rate', () => {
@@ -117,7 +126,7 @@ describe('KeypadPanel flow', () => {
     expect(book).not.toHaveBeenCalled();
     expect(screen.queryByTestId('confirm-step')).toBeNull();
     expect(screen.getByTestId('keypad-status')).toHaveTextContent('No problem. Choose again');
-    expect(screen.getAllByRole('button')).toHaveLength(3);
+    expect(screen.getByRole('button', { name: /Press 1: Lock Super Seeder/ })).toBeInTheDocument();
   });
 
   it('shows a pending state while the request is in flight and blocks double booking', async () => {
