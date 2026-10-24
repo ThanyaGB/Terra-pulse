@@ -1,0 +1,14 @@
+# Telephony compliance and failover (spec 10.1, 10.2, ADR-13). Calls also need TELEPHONY_ENABLED (gate G1).
+version: 1
+calling_hours:
+  start: "08:00"
+  end: "19:00"
+  tz: Asia/Kolkata
+health_check:
+  interval_s: 30
+  failures_before_failover: 3
+disclosure:
+  approved: false              # the disclosure script is approved at gate G1; wording here is a draft
+  en: "This is an automated call from Vayu-Swachh, on behalf of Sangrur Machinery Cooperative."
+  hi: "यह वायु-स्वच्छ की ओर से, संगरूर मशीनरी सहकारी समिति के लिए, एक स्वचालित कॉल है।"
+  pa: "ਇਹ ਵਾਯੂ-ਸਵੱਛ ਵੱਲੋਂ, ਸੰਗਰੂਰ ਮਸ਼ੀਨਰੀ ਸਹਿਕਾਰੀ ਸਭਾ ਵਾਸਤੇ, ਇੱਕ ਆਟੋਮੈਟਿਕ ਕਾਲ ਹੈ।"

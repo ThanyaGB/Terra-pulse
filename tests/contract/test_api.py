@@ -76,7 +76,7 @@ def test_advice_changes_by_profile_and_time(client, H):
     assert ids("asthma", 7) != ids("asthma", 14)
 
 
-def test_no_unmasked_farmer_phone_anywhere(client, H):
+def test_no_unmasked_farmer_phone_anywhere(client, H, calls_on):
     raw = {p.phone for p in client.platform.world.parcels.values()}
     body = client.get("/v1/risk/parcels?limit=200", headers=H("fpo_coordinator")).text
     assert PHONE.search(body) is None or all(m.group(0).endswith("XXXXX") is False for m in []) or not any(ph in body for ph in raw)
@@ -104,17 +104,17 @@ def test_booking_flow_and_operator_phone_exception(client, H):
     assert client.post("/v1/bookings", json={"parcel_id": pid}, headers=H("citizen")).status_code == 403
 
 
-def test_keypad_one_confirms_booking_and_two_requests_collection(client, H):
+def test_keypad_one_confirms_booking_and_two_requests_collection(client, H, contract_active):
     pid = list(client.platform.world.parcels)[3]
     r = client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "1"}, headers=H("farmer")).json()
     assert r["status"] == "confirmed" and r["booking"]["status"] == "confirmed"
     r2 = client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "2"}, headers=H("farmer")).json()
     assert r2["collection"]["floor_price_inr_per_tonne"] == 1650
-    assert client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "9"}, headers=H("farmer")).json()["status"] == "connecting"
+    assert client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "9"}, headers=H("farmer")).json()["status"] == "callback_unscheduled"   # nobody rostered, no slots: no time promised
     assert client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "5"}, headers=H("farmer")).status_code == 422
 
 
-def test_call_rate_limit_per_parcel(client, H):
+def test_call_rate_limit_per_parcel(client, H, calls_on):
     pid = list(client.platform.world.parcels)[1]
     codes = [client.post("/v1/calls/trigger", json={"parcel_id": pid}, headers=H("fpo_coordinator")).status_code for _ in range(3)]
     assert codes == [202, 202, 429]
@@ -122,7 +122,7 @@ def test_call_rate_limit_per_parcel(client, H):
     assert "Retry-After" in r.headers and "limit" in r.json()["detail"].lower()
 
 
-def test_signed_webhook_dtmf_confirms_booking(client, H):
+def test_signed_webhook_dtmf_confirms_booking(client, H, calls_on):
     pid = list(client.platform.world.parcels)[2]
     call = client.post("/v1/calls/trigger", json={"parcel_id": pid}, headers=H("fpo_coordinator")).json()
     tel = client.app.state.telephony

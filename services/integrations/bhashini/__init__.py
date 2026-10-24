@@ -1,5 +1,6 @@
-"""Bhashini ASR/TTS (T4.2). Generated audio is cached by SHA-256 of the normalised script (ADR-10), so an identical
-script never triggers a second provider call. Access tier and dialect coverage are open question 3."""
+"""Bhashini TTS adapter (T4.2), used only when TTS_PROVIDER=bhashini. Generated audio is cached by SHA-256 of the normalised
+script (ADR-10), so an identical script never triggers a second provider call. There is no speech recognition anywhere:
+farmers act by keypad only (ADR-09)."""
 from __future__ import annotations
 
 import hashlib
@@ -63,11 +64,3 @@ class BhashiniClient:
         audio = self._tts(text, lang)
         self.cache.put(key, audio)
         return audio, False
-
-    def transcribe(self, audio: bytes, lang: str) -> str:
-        import base64
-        r = self.client.post(self.url, headers={"Authorization": self.key}, json={
-            "pipelineTasks": [{"taskType": "asr", "config": {"language": {"sourceLanguage": LANG_CODES[lang]}}}],
-            "inputData": {"audio": [{"audioContent": base64.b64encode(audio).decode()}]}})
-        r.raise_for_status()
-        return str(r.json()["pipelineResponse"][0]["output"][0]["source"])

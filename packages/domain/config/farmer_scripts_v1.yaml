@@ -1,31 +1,32 @@
 # Economics-first call scripts (ADR-08). No punitive wording; enforced by the blocked_words lint.
 # Machine-drafted Punjabi and Hindi: needs native-speaker review (open question 3).
-# Prices are pilot assumptions to confirm with partners before showing them to farmers (open question 4).
-version: 1
-prices:
-  seeder_rate_inr_per_acre: 750
-  straw_floor_inr_per_tonne: 1650
+# Rates are NOT in this file (ADR-17). A line marked `requires: <rate key>` is spoken only when an active partner contract
+# supplies that rate (config/partner_rates.yaml); with no active contract the line is omitted.
+version: 2
+rate_keys:
+  seeder_rate: super_seeder_rental_inr_per_acre
+  straw_price: straw_floor_inr_per_tonne
 lines:
   en:
     - "Hello {name} ji, this is Sangrur Machinery Cooperative."
     - "Your paddy harvest is expected in {days_to_harvest} days."
     - "A Super Seeder can sow wheat straight into the straw, no burning needed."
-    - "Super Seeder rental is ₹{seeder_rate} per acre."
-    - "We also buy your straw for ₹{straw_price} per tonne."
+    - {text: "Super Seeder rental is ₹{seeder_rate} per acre.", requires: seeder_rate}
+    - {text: "We also buy your straw for ₹{straw_price} per tonne.", requires: straw_price}
     - "Press 1 to lock a Super Seeder, 2 for straw collection, or 9 to speak to an agronomist."
   hi:
     - "नमस्ते {name} जी, मैं संगरूर मशीनरी सहकारी समिति से बोल रहा हूँ।"
     - "आपकी धान की कटाई अगले {days_to_harvest} दिनों में होने वाली है।"
     - "सुपर सीडर पराली में ही गेहूँ बो देता है, जलाने की ज़रूरत नहीं।"
-    - "सुपर सीडर का किराया ₹{seeder_rate} प्रति एकड़ है।"
-    - "हम आपकी पराली ₹{straw_price} प्रति टन पर खरीदते हैं।"
+    - {text: "सुपर सीडर का किराया ₹{seeder_rate} प्रति एकड़ है।", requires: seeder_rate}
+    - {text: "हम आपकी पराली ₹{straw_price} प्रति टन पर खरीदते हैं।", requires: straw_price}
     - "सुपर सीडर पक्का करने के लिए 1, पराली उठवाने के लिए 2, कृषि विशेषज्ञ से बात करने के लिए 9 दबाएँ।"
   pa:
     - "ਸਤ ਸ੍ਰੀ ਅਕਾਲ {name} ਜੀ, ਮੈਂ ਸੰਗਰੂਰ ਮਸ਼ੀਨਰੀ ਸਹਿਕਾਰੀ ਸਭਾ ਵੱਲੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ।"
     - "ਤੁਹਾਡੇ ਝੋਨੇ ਦੀ ਕਟਾਈ ਅਗਲੇ {days_to_harvest} ਦਿਨਾਂ ਵਿੱਚ ਹੋਣ ਵਾਲੀ ਹੈ।"
     - "ਸੁਪਰ ਸੀਡਰ ਪਰਾਲੀ ਵਿੱਚ ਹੀ ਕਣਕ ਬੀਜ ਦਿੰਦਾ ਹੈ, ਸਾੜਨ ਦੀ ਲੋੜ ਨਹੀਂ।"
-    - "ਸੁਪਰ ਸੀਡਰ ਦਾ ਕਿਰਾਇਆ ₹{seeder_rate} ਪ੍ਰਤੀ ਏਕੜ ਹੈ।"
-    - "ਅਸੀਂ ਤੁਹਾਡੀ ਪਰਾਲੀ ₹{straw_price} ਪ੍ਰਤੀ ਟਨ ਦੇ ਭਾਅ ਖਰੀਦਦੇ ਹਾਂ।"
+    - {text: "ਸੁਪਰ ਸੀਡਰ ਦਾ ਕਿਰਾਇਆ ₹{seeder_rate} ਪ੍ਰਤੀ ਏਕੜ ਹੈ।", requires: seeder_rate}
+    - {text: "ਅਸੀਂ ਤੁਹਾਡੀ ਪਰਾਲੀ ₹{straw_price} ਪ੍ਰਤੀ ਟਨ ਦੇ ਭਾਅ ਖਰੀਦਦੇ ਹਾਂ।", requires: straw_price}
     - "ਸੁਪਰ ਸੀਡਰ ਪੱਕਾ ਕਰਨ ਲਈ 1, ਪਰਾਲੀ ਚੁੱਕਵਾਉਣ ਲਈ 2, ਖੇਤੀ ਮਾਹਰ ਨਾਲ ਗੱਲ ਕਰਨ ਲਈ 9 ਦਬਾਓ।"
 blocked_words:
   en: [fine, penalty, punish, prosecute, illegal, challan, jail, violation, arrest]

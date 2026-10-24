@@ -1,19 +1,22 @@
 """Farmer Advisory and Logistics Agent (T2.5): economics-first scripts (ADR-08), nearest-machine matching,
-floor-price collection requests, idempotent bookings. Subscribes to risk.updated; publishes booking.created."""
+collection requests, idempotent bookings. Rates and the buy-back line come only from an active partner contract (ADR-17).
+Subscribes to risk.updated; publishes booking.created."""
 from __future__ import annotations
 
 import secrets
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, Mapping
 
 from agents.common import BaseAgent, Event
 from agents.common.events import BOOKING_CREATED, RISK_UPDATED
 from agents.world import Parcel, World
+from domain import partners
 from domain.config import load_yaml
 from ingestion.crm import Machine
 from integrations.biocng import BioCngPartner, CollectionRequest
 from integrations.machinery_crm import CrmSync
 
+AREA_ID = "sangrur"       # the pilot area that partner contracts are written for
 BOOKING_TIERS = {"high", "critical"}
 TONNES_PER_ACRE = 2.5   # paddy straw yield assumption; replace with measured yields
 
@@ -28,12 +31,33 @@ def blocked_words_found(text: str, lang: str, cfg: dict[str, Any] | None = None)
     return [w for w in cfg["blocked_words"].get(lang, []) if w.lower() in low]
 
 
-def render_script(lang: str, name: str, days_to_harvest: int, cfg: dict[str, Any] | None = None) -> list[str]:
+def contract_rates(world: World, cfg: dict[str, Any] | None = None) -> dict[str, partners.Rate]:
+    """Alias (seeder_rate, straw_price) -> Rate, for each rate that an active contract backs. Absent when none does."""
     cfg = cfg or load_scripts_cfg()
-    p = cfg["prices"]
-    fmt = {"name": name, "days_to_harvest": days_to_harvest, "seeder_rate": p["seeder_rate_inr_per_acre"],
-           "straw_price": f"{p['straw_floor_inr_per_tonne']:,}"}
-    lines = [t.format(**fmt) for t in cfg["lines"][lang]]
+    out: dict[str, partners.Rate] = {}
+    for alias, key in cfg["rate_keys"].items():
+        r = partners.rate(AREA_ID, key, world.today, world.contracts)
+        if r is not None:
+            out[alias] = r
+    return out
+
+
+def render_script(lang: str, name: str, days_to_harvest: int, cfg: dict[str, Any] | None = None,
+                  rates: Mapping[str, partners.Rate] | None = None) -> list[str]:
+    """Script lines for a farmer. A line marked `requires` is left out unless `rates` has that rate (no active contract, no price)."""
+    cfg = cfg or load_scripts_cfg()
+    rates = rates or {}
+    fmt: dict[str, Any] = {"name": name, "days_to_harvest": days_to_harvest}
+    if "seeder_rate" in rates:
+        fmt["seeder_rate"] = f"{rates['seeder_rate'].value:g}"
+    if "straw_price" in rates:
+        fmt["straw_price"] = f"{rates['straw_price'].value:,.0f}"
+    lines: list[str] = []
+    for item in cfg["lines"][lang]:
+        text, need = (item, None) if isinstance(item, str) else (item["text"], item.get("requires"))
+        if need is not None and need not in rates:
+            continue
+        lines.append(text.format(**fmt))
     bad = [w for ln in lines for w in blocked_words_found(ln, lang, cfg)]
     if bad:
         raise ValueError(f"punitive wording in {lang} script: {bad}")
@@ -61,7 +85,7 @@ class FarmerAdvisoryAgent(BaseAgent):
         if parcel is None:
             return
         days = max(1, (parcel.harvest_start - self.world.today).days)
-        self.world.scripts[pid] = {lang: render_script(lang, parcel.farmer_name.split()[0], days, self.cfg) for lang in ("pa", "hi", "en")}
+        self.world.scripts[pid] = {lang: render_script(lang, parcel.farmer_name.split()[0], days, self.cfg, contract_rates(self.world, self.cfg)) for lang in ("pa", "hi", "en")}
         if tier in BOOKING_TIERS:
             await self.create_booking(parcel, event)
 
@@ -84,12 +108,13 @@ class FarmerAdvisoryAgent(BaseAgent):
         # one open booking per parcel: a second machine for the same parcel is not created by the agent
         if any(b["parcel_id"] == parcel.id and b["status"] in ("pending_confirmation", "confirmed") for b in self.world.bookings.values()):
             return next(b for b in self.world.bookings.values() if b["parcel_id"] == parcel.id)
+        seeder = partners.rate(AREA_ID, self.cfg["rate_keys"]["seeder_rate"], self.world.today, self.world.contracts)
         updated = self.sync.push_booking(m.id, parcel.id, m.version)
         if updated is None:
             return None   # lost the race; conflict is in the FPO queue
         bid = f"BK-{datetime.now(timezone.utc):%Y%m%d}-{len(self.world.bookings) + 1:04d}"
         booking = {"booking_id": bid, "_key": key, "parcel_id": parcel.id, "machinery_id": m.id, "status": "pending_confirmation",
-                   "distance_km": round(dist, 1), "rental_rate_inr_per_acre": self.cfg["prices"]["seeder_rate_inr_per_acre"],
+                   "distance_km": round(dist, 1), "rental_rate_inr_per_acre": int(seeder.value) if seeder else None, "rate_source": seeder.source if seeder else None,
                    "created_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "version": 1}
         self.world.bookings[bid] = booking
         ev = (event.child if event else Event(type=BOOKING_CREATED).child)(BOOKING_CREATED, {"booking_id": bid, "parcel_id": parcel.id, "machinery_id": m.id})
@@ -98,11 +123,12 @@ class FarmerAdvisoryAgent(BaseAgent):
 
     def request_collection(self, parcel: Parcel) -> dict[str, Any]:
         tonnes = round(parcel.acres * TONNES_PER_ACRE, 1)
-        floor = int(self.cfg["prices"]["straw_floor_inr_per_tonne"])
+        r = partners.rate(AREA_ID, self.cfg["rate_keys"]["straw_price"], self.world.today, self.world.contracts)
+        floor = int(r.value) if r else None
         rid = f"COL-{secrets.token_hex(3).upper()}"
         self.partner.request_collection(CollectionRequest(rid, parcel.id, tonnes, floor))
         rec = {"request_id": rid, "parcel_id": parcel.id, "estimated_tonnes": tonnes, "floor_price_inr_per_tonne": floor,
-               "estimated_value_inr": round(tonnes * floor), "status": "requested"}
+               "estimated_value_inr": round(tonnes * floor) if floor else None, "rate_source": r.source if r else None, "status": "requested"}
         self.world.collections[rid] = rec
         return rec
 

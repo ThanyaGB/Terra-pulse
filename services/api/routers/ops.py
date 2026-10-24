@@ -5,7 +5,7 @@ import secrets
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 
 from api.directives import PREVIEWS, ApprovalError
@@ -147,16 +147,29 @@ async def collections_request(request: Request, body: CollectionCreate, who: Pri
 @router.get("/calls/session", summary="Call script for the farmer simulator (extension)", tags=["farmer"])
 async def call_session(request: Request, lang: Literal["pa", "hi", "en"] = "pa", parcel_id: str | None = None,
                        _: Principal = Depends(require_roles("farmer"))) -> dict[str, Any]:
-    from agents.advisory_agent import load_scripts_cfg, render_script
+    from agents.advisory_agent import contract_rates, render_script
     o = ops(request)
     pid = parcel_id or next(iter(o.p.world.parcels))
     pr = o.parcel(pid)
     days = max(1, (pr.harvest_start - o.p.world.today).days)
-    lines = render_script(lang, pr.farmer_name.split()[0], days)
-    prices = load_scripts_cfg()["prices"]
+    rates = contract_rates(o.p.world)
+    lines = [o.disclosure(lang), *render_script(lang, pr.farmer_name.split()[0], days, rates=rates)]
+    audio = [{"line": i, "key": r.key, "source": r.source, "url": f"/v1/audio/{r.key}.wav?lang={lang}" if r.audio is not None else None}
+             for i, r in enumerate(o.audio.audio_for(t, lang) for t in lines)] if o.audio else []
     return {"session_id": f"SES-{secrets.token_hex(3).upper()}", "parcel_id": pid, "caller_name": "Sangrur Machinery Cooperative", "caller_id": "01672-XXXXXX",
-            "farmer_first_name": pr.farmer_name.split()[0], "lang": lang, "audio_url": None, "lines": lines,
-            "prices": {"super_seeder_per_acre": prices["seeder_rate_inr_per_acre"], "straw_per_tonne": prices["straw_floor_inr_per_tonne"]}}
+            "farmer_first_name": pr.farmer_name.split()[0], "lang": lang, "audio_url": None, "lines": lines, "audio": audio,
+            "tts_provider": request.app.state.features.value("TTS_PROVIDER"),
+            "prices": {"super_seeder_per_acre": int(rates["seeder_rate"].value) if "seeder_rate" in rates else None,
+                       "straw_per_tonne": int(rates["straw_price"].value) if "straw_price" in rates else None}}
+
+
+@router.get("/audio/{key}.wav", summary="Call audio clip by script hash (extension)", tags=["farmer"], response_class=Response)
+async def audio_clip(request: Request, key: str, lang: Literal["pa", "hi", "en"] = "pa", _: Principal = Depends(require_roles("farmer", "fpo_coordinator"))) -> Response:
+    o = ops(request)
+    path = (o.audio.library.root / lang / f"{key}.wav") if o.audio else None
+    if path is None or not key.isalnum() or not path.exists():
+        raise ProblemError(404, "Clip not found", "No recorded clip for this script. Subtitles only until the library is recorded.")
+    return Response(path.read_bytes(), media_type="audio/wav")
 
 
 @router.post("/calls/keypress", summary="Keypad press 1/2/9 from the simulator or IVR (extension)", tags=["farmer"])
@@ -256,7 +269,9 @@ async def collections_summary(request: Request, _: Principal = Depends(require_r
     received = round(sum(e.tonnes for e in ledger), 1)
     requested = round(sum(c["estimated_tonnes"] for c in cols), 1)
     acres = round(sum(p.world.parcels[c["parcel_id"]].acres for c in cols))
-    return {"plant": "Bio-CNG plant, Sangrur", "floor_price_inr_per_tonne": p.advisory.cfg["prices"]["straw_floor_inr_per_tonne"],
+    from agents.advisory_agent import contract_rates
+    floor = contract_rates(p.world, p.advisory.cfg).get("straw_price")
+    return {"plant": "Bio-CNG plant, Sangrur", "floor_price_inr_per_tonne": int(floor.value) if floor else None, "rate_source": floor.source if floor else None,
             "tonnes_received": received, "tonnes_requested": requested, "cumulative_acres": acres,
             "trucks_today": math.ceil(requested / 8) if requested else 0, "reconciliation_items": len(p.advisory.partner.reconciliation)}
 

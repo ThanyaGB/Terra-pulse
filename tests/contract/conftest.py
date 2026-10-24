@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -27,7 +27,26 @@ def client(snap):
         import asyncio
         asyncio.run(plat.run_cycle("W1"))
         c.platform = plat  # type: ignore[attr-defined]
+        c.app.state.telephony.clock = lambda: datetime(2026, 10, 23, 6, 30, tzinfo=timezone.utc)   # 12:00 IST, inside calling hours
         yield c
+
+
+ACTIVE_CONTRACT = {"contract_id": "PC-TEST", "partner": "test partner", "area_id": "sangrur", "status": "active", "valid_from": None, "valid_to": None,
+                   "rates": {"straw_floor_inr_per_tonne": 1650, "super_seeder_rental_inr_per_acre": 750}}
+
+
+@pytest.fixture()
+def calls_on(client):
+    """Turn TELEPHONY_ENABLED on the way an operator must: two different admins."""
+    f = client.app.state.features
+    f.change("TELEPHONY_ENABLED", True, "admin-a")
+    f.change("TELEPHONY_ENABLED", True, "admin-b")
+    assert f.enabled("TELEPHONY_ENABLED")
+
+
+@pytest.fixture()
+def contract_active(client):
+    client.platform.world.contracts = [ACTIVE_CONTRACT]
 
 
 def token(role: str, sub: str | None = None) -> dict[str, str]:

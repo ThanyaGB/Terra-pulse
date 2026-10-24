@@ -3,7 +3,7 @@ FROM python:3.12-slim AS build
 WORKDIR /build
 RUN pip install --no-cache-dir --prefix=/install \
     "fastapi>=0.110" "uvicorn[standard]>=0.27" "pydantic>=2.6" "pydantic-settings>=2.2" "httpx>=0.27" "pyyaml>=6" "redis>=5" \
-    "pillow>=10" "python-multipart>=0.0.9" "websockets>=12" "rasterio>=1.3"
+    "pillow>=10" "python-multipart>=0.0.9" "websockets>=12" "rasterio>=1.3" "numpy>=1.26" "cryptography>=42" "tzdata>=2024.1"
 
 FROM python:3.12-slim
 RUN useradd --system --uid 10001 --create-home vayu

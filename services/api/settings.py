@@ -23,7 +23,10 @@ class Settings(BaseSettings):
     refresh_minutes: int = 15
     raw_store_dir: str = "var/raw"
     photo_dir: str = "var/photos"
-    audio_cache_dir: str = "var/audio"
+    audio_cache_dir: str = "var/audio"                # Bhashini output cache (SHA-256 of the script)
+    audio_library_dir: str = "assets/audio"           # pre-recorded clips: <lang>/<sha256>.wav and prompts/<lang>/<name>.wav
+    bhashini_url: str | None = None
+    bhashini_api_key: str | None = None
     outbox_path: str = "var/outbox.sqlite"
 
     redis_url: str | None = None
@@ -33,6 +36,13 @@ class Settings(BaseSettings):
 
     feature_overrides_path: str | None = "var/feature_overrides.json"   # persists admin flag changes; defaults come from config/features.yaml
     telephony_primary: Literal["twilio", "exotel"] = "exotel"   # ADR-13
+    exotel_sid: str | None = None
+    exotel_api_key: str | None = None
+    exotel_api_token: str | None = None
+    exotel_caller_id: str | None = None
+    twilio_account_sid: str | None = None
+    twilio_auth_token: str | None = None
+    twilio_from_number: str | None = None
     call_rate_limit: int = 2
     call_rate_window_s: int = 24 * 3600
 

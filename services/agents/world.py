@@ -63,6 +63,7 @@ class World:
     work_orders: dict[str, dict[str, Any]] = field(default_factory=dict)
     roi: list[dict[str, Any]] = field(default_factory=list)
     agent_health: dict[str, dict[str, Any]] = field(default_factory=dict)
+    contracts: list[dict[str, Any]] | None = None     # partner contracts; None = read config/partner_rates.yaml
 
     def __post_init__(self) -> None:
         if not self.parcels:

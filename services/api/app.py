@@ -25,8 +25,10 @@ from domain import aqi as aqi_domain
 from domain.features import FeatureFlags
 from ingestion.pipeline import Snapshot, build_snapshot
 from ingestion.rawstore import FileRawStore
+from integrations.audio import AudioLibrary, AudioService
+from integrations.bhashini import AudioCache, BhashiniClient
 from integrations.ratelimit import MemoryLimiter, RedisLimiter
-from integrations.telephony import FakeProvider, TelephonyAdapter
+from integrations.telephony import ExotelProvider, FakeProvider, TelephonyAdapter, TwilioProvider
 
 log = logging.getLogger("api")
 BAND_ORDER = ["good", "satisfactory", "moderate", "poor", "very_poor", "severe", "severe_plus"]
@@ -39,6 +41,13 @@ def _provider(settings: Settings) -> Any:
         return build_snapshot(raw, offline=settings.data_mode == "offline", live_ndvi=settings.live_ndvi, data_gov_key=settings.data_gov_in_key)
 
     return provider
+
+
+def _providers(s: Settings) -> dict[str, Any]:
+    """Exotel (primary) and Twilio (standby). Without credentials a provider is the in-memory fake, so dev and tests dial nothing."""
+    exotel: Any = ExotelProvider(s.exotel_sid, s.exotel_api_key or "", s.exotel_api_token or "", s.exotel_caller_id or "")         if s.exotel_sid and s.exotel_api_token else FakeProvider("exotel")
+    twilio: Any = TwilioProvider(s.twilio_account_sid, s.twilio_auth_token or "", s.twilio_from_number or "")         if s.twilio_account_sid and s.twilio_auth_token else FakeProvider("twilio")
+    return {"exotel": exotel, "twilio": twilio}
 
 
 def _wire_hub(platform: Platform, hub: Hub) -> None:
@@ -107,13 +116,15 @@ def create_app(settings: Settings | None = None, platform: Platform | None = Non
                                       gnn_enabled=features.enabled("FORECAST_GNN_ENABLED"))
     app.state.platform = plat
     app.state.features = features
-    providers = {"twilio": FakeProvider("twilio"), "exotel": FakeProvider("exotel")}   # real providers need credentials from the secret manager
+    providers = _providers(settings)   # real providers need credentials from the secret manager
     secondary = "exotel" if settings.telephony_primary == "twilio" else "twilio"
     tel = TelephonyAdapter(providers[settings.telephony_primary], providers[secondary], on_alert=lambda m: app.state.hub.publish("alert.fired", {"kind": "telephony", "message": m}))
     app.state.telephony = tel
     limiter = RedisLimiter(settings.redis_url, settings.call_rate_limit, settings.call_rate_window_s) if settings.redis_url else \
         MemoryLimiter(settings.call_rate_limit, settings.call_rate_window_s)
-    app.state.ops = Ops(plat, tel, limiter)
+    bhashini = BhashiniClient(settings.bhashini_url, settings.bhashini_api_key or "", AudioCache(settings.audio_cache_dir)) if settings.bhashini_url else None
+    audio = AudioService(AudioLibrary(settings.audio_library_dir), lambda: features.value("TTS_PROVIDER"), bhashini)
+    app.state.ops = Ops(plat, tel, limiter, features, audio=audio)
     app.state.reports = {}
     _wire_hub(plat, app.state.hub)
 

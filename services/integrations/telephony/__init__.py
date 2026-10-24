@@ -1,7 +1,8 @@
 """Telephony adapter with failover (T4.1, spec section 9). One interface, primary + secondary provider.
 
 Health is checked every 30 s by the caller (`check_health`); after 3 consecutive failures new calls go to the
-secondary and an alert is raised. Calls already in progress stay on the provider that started them."""
+secondary and an alert is raised. Calls already in progress stay on the provider that started them. Calls are placed only
+inside the permitted hours in config/telephony.yaml (default 08:00-19:00 IST). Exotel is the primary, Twilio the standby."""
 from __future__ import annotations
 
 import base64
@@ -9,17 +10,36 @@ import hashlib
 import hmac
 import itertools
 from dataclasses import dataclass, field
+from datetime import datetime, time, timezone
 from typing import Any, Callable, Protocol
+from zoneinfo import ZoneInfo
 
 import httpx
 
+from domain.config import load_yaml
+
 DTMF_KEYS = ("1", "2", "9")
-FAILURES_BEFORE_FAILOVER = 3
-HEALTH_INTERVAL_S = 30
+_CFG = load_yaml("telephony.yaml")
+FAILURES_BEFORE_FAILOVER = int(_CFG["health_check"]["failures_before_failover"])
+HEALTH_INTERVAL_S = int(_CFG["health_check"]["interval_s"])
 
 
 class ProviderError(Exception):
     pass
+
+
+class OutsideCallingHours(Exception):
+    pass
+
+
+def calling_window(cfg: dict[str, str] | None = None) -> tuple[time, time, ZoneInfo]:
+    h = cfg or _CFG["calling_hours"]
+    return time.fromisoformat(h["start"]), time.fromisoformat(h["end"]), ZoneInfo(h["tz"])
+
+
+def within_calling_hours(now: datetime, cfg: dict[str, str] | None = None) -> bool:
+    start, end, tz = calling_window(cfg)
+    return start <= now.astimezone(tz).time() < end
 
 
 class TelephonyProvider(Protocol):
@@ -121,7 +141,9 @@ class CallRecord:
 
 class TelephonyAdapter:
     def __init__(self, primary: TelephonyProvider, secondary: TelephonyProvider,
-                 on_alert: Callable[[str], None] | None = None, on_dtmf: Callable[[CallRecord, str], None] | None = None) -> None:
+                 on_alert: Callable[[str], None] | None = None, on_dtmf: Callable[[CallRecord, str], None] | None = None,
+                 clock: Callable[[], datetime] | None = None) -> None:
+        self.clock = clock or (lambda: datetime.now(timezone.utc))
         self.providers = {primary.name: primary, secondary.name: secondary}
         self.order = [primary.name, secondary.name]
         self.active = primary.name
@@ -146,6 +168,9 @@ class TelephonyAdapter:
 
     # -- calls --
     def place_call(self, parcel_id: str, to: str, script_url: str, callback_url: str) -> CallRecord:
+        if not within_calling_hours(self.clock()):
+            start, end, tz = calling_window()
+            raise OutsideCallingHours(f"calls are placed only {start:%H:%M}-{end:%H:%M} {tz.key}")
         failed = self.active
         try:
             cid = self.providers[failed].place_call(to, script_url, callback_url)

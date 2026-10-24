@@ -1,6 +1,6 @@
 """Bio-CNG / briquette partners (T4.5): collection requests out, weighbridge receipts in, reconciled to the FPO
 ledger. A receipt whose weight differs from the request by more than the tolerance raises a reconciliation item.
-The floor price (Rs 1,650/t in the pilot) is an assumption to confirm with partners (open question 4)."""
+The floor price comes from an active partner contract (ADR-17); without one the request carries no rate."""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -14,7 +14,7 @@ class CollectionRequest:
     request_id: str
     parcel_id: str
     estimated_tonnes: float
-    floor_price_inr: int
+    floor_price_inr: int | None     # None when no active contract backs a rate (ADR-17)
     status: str = "requested"
 
 
@@ -22,7 +22,7 @@ class CollectionRequest:
 class LedgerEntry:
     request_id: str
     tonnes: float
-    amount_inr: int
+    amount_inr: int | None          # None when the request had no contract rate
 
 
 @dataclass
@@ -57,6 +57,6 @@ class BioCngPartner:
             self.reconciliation.append(item)
             return item
         req.status = "reconciled"
-        entry = LedgerEntry(request_id, tonnes, round(tonnes * req.floor_price_inr))
+        entry = LedgerEntry(request_id, tonnes, round(tonnes * req.floor_price_inr) if req.floor_price_inr is not None else None)
         self.ledger.append(entry)
         return entry

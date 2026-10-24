@@ -6,10 +6,14 @@ from typing import Any
 
 from agents.runtime import Platform
 from agents.world import Parcel
+from api.agronomist import AgronomistDesk
 from api.masking import clear
 from api.problem import ProblemError
+from domain.config import load_yaml
+from domain.features import FeatureFlags
+from integrations.audio import AudioService
 from integrations.ratelimit import RateLimitExceeded
-from integrations.telephony import CallRecord, TelephonyAdapter
+from integrations.telephony import CallRecord, OutsideCallingHours, TelephonyAdapter, calling_window, within_calling_hours
 
 
 def now_iso() -> str:
@@ -17,11 +21,14 @@ def now_iso() -> str:
 
 
 class Ops:
-    def __init__(self, platform: Platform, telephony: TelephonyAdapter, limiter: Any) -> None:
+    def __init__(self, platform: Platform, telephony: TelephonyAdapter, limiter: Any, features: FeatureFlags | None = None,
+                 desk: AgronomistDesk | None = None, audio: AudioService | None = None) -> None:
         self.p, self.tel, self.limiter = platform, telephony, limiter
+        self.features = features or FeatureFlags.load()
+        self.desk = desk or AgronomistDesk(self.tel.clock)
+        self.audio = audio
         self.calls: dict[str, dict[str, Any]] = {}
         self.by_parcel: dict[str, list[str]] = {}
-        self.callbacks: list[dict[str, Any]] = []
 
     # ---- helpers ----
     def parcel(self, parcel_id: str) -> Parcel:
@@ -34,16 +41,34 @@ class Ops:
         self.p.audit.append(actor, action, payload)
 
     # ---- calls ----
+    def disclosure(self, lang: str) -> str:
+        d = load_yaml("telephony.yaml")["disclosure"]
+        return str(d.get(lang) or d["en"])
+
+    def script_lines(self, parcel_id: str, lang: str) -> list[str]:
+        """Every call opens with the disclosure line (spec 10.2), then the stored, versioned script."""
+        return [self.disclosure(lang), *self.p.world.scripts.get(parcel_id, {}).get(lang, [])]
+
     def trigger_call(self, parcel_id: str, actor: str, lang: str = "pa") -> dict[str, Any]:
         parcel = self.parcel(parcel_id)
+        if not self.features.enabled("TELEPHONY_ENABLED"):
+            raise ProblemError(503, "Telephony is off", "Outbound calls are disabled (feature flag TELEPHONY_ENABLED, gate G1). Nothing was dialled.",
+                               type_="https://vayu-swachh.example/problems/feature-off")
+        if not within_calling_hours(self.tel.clock()):
+            start, end, tz = calling_window()
+            raise ProblemError(409, "Outside calling hours", f"Calls are placed only {start:%H:%M}-{end:%H:%M} {tz.key}.",
+                               type_="https://vayu-swachh.example/problems/calling-hours")
         try:
             self.limiter.hit(f"call:{parcel_id}")
         except RateLimitExceeded as exc:
             raise ProblemError(429, "Call limit reached", str(exc), type_="https://vayu-swachh.example/problems/rate-limit",
                                headers={"Retry-After": str(exc.retry_after_s)}) from exc
         self.audit(actor, "call.trigger", {"parcel_id": parcel_id})
-        rec: CallRecord = self.tel.place_call(parcel_id, parcel.phone, f"/v1/calls/session?parcel_id={parcel_id}&lang={lang}", "/v1/calls/webhook")
-        script = self.p.world.scripts.get(parcel_id, {}).get(lang, [])
+        try:
+            rec: CallRecord = self.tel.place_call(parcel_id, parcel.phone, f"/v1/calls/session?parcel_id={parcel_id}&lang={lang}", "/v1/calls/webhook")
+        except OutsideCallingHours as exc:
+            raise ProblemError(409, "Outside calling hours", str(exc)) from exc
+        script = self.script_lines(parcel_id, lang)
         call = {"call_id": rec.call_id, "parcel_id": parcel_id, "provider": rec.provider, "status": "queued", "started_at": now_iso(),
                 "lang": lang, "transcript": [{"at": now_iso(), "speaker": "agent", "text": t} for t in script], "intent": None,
                 "keys": []}
@@ -74,9 +99,9 @@ class Ops:
         if key == "2":
             col = self.request_collection(parcel_id, actor)
             return {"key": key, "status": "confirmed", "reference_id": col["request_id"], "collection": col}
-        cb = {"callback_id": f"CB-{len(self.callbacks) + 1:04d}", "parcel_id": parcel_id, "requested_at": now_iso(), "topic": "agronomist"}
-        self.callbacks.append(cb)
-        return {"key": key, "status": "connecting", "reference_id": cb["callback_id"]}
+        res = self.desk.request(parcel_id)          # ADR-22: staffed queue in pilot hours, else a callback slot
+        self.audit(actor, "agronomist.requested", {"parcel_id": parcel_id, **res})
+        return {"key": key, **res}
 
     # ---- bookings ----
     async def create_booking(self, parcel_id: str, machinery_id: str | None, actor: str, machine_type: str | None = None) -> dict[str, Any]:
@@ -105,7 +130,7 @@ class Ops:
             phone = clear(m.operator_phone)   # ADR-06 exception: live booking, farmer + FPO only
         return {"booking_id": b["booking_id"], "status": b["status"], "parcel_id": b["parcel_id"],
                 "machinery": {"id": m.id, "type": m.type, "operator_name": m.operator_name, "operator_phone": phone, "distance_km": b["distance_km"]},
-                "rental_rate_inr_per_acre": b["rental_rate_inr_per_acre"]}
+                "rental_rate_inr_per_acre": b["rental_rate_inr_per_acre"], "rate_source": b.get("rate_source")}
 
     # ---- collections ----
     def request_collection(self, parcel_id: str, actor: str) -> dict[str, Any]:
