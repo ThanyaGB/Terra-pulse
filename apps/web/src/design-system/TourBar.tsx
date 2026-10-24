@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 const STEPS = [
   { path: '/policy', title: 'Policy dashboard', body: 'Pick a street, scrub the 72 h plume, then issue a directive (nothing is sent until you confirm). A GRAP-II order also lights the citizen banner.' },
   { path: '/fpo', title: 'FPO console', body: 'Select a high-risk farmer, trigger a voice alert, assign a machine, and add a truck to watch eco-credits move.' },
-  { path: '/farmer', title: 'Farmer call', body: 'Answer the call, press 1, 2 or 9 on the big keypad. Key 1 opens a WhatsApp booking sheet.' },
+  { path: '/farmer', title: 'Farmer call', body: 'Answer the call, press 1, 2 or 9 on the big keypad, then 1 to confirm or 0 to go back. Key 9 reaches an FPO worker.' },
   { path: '/citizen', title: 'Citizen app', body: 'Check AQI and the better window, plan a cleaner commute, and report smoke with a photo.' },
 ] as const;
 

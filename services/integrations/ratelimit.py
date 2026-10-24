@@ -1,4 +1,4 @@
-"""Per-parcel rate limits for outbound calls and WhatsApp messages (T4.7). Redis-backed in deployment
+"""Per-parcel rate limits for outbound calls (T4.7). Redis-backed in deployment
 (fixed window via INCR + EXPIRE); in-memory sliding window otherwise. Configurable: default 2 per 24 h."""
 from __future__ import annotations
 

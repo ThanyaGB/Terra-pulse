@@ -1,7 +1,7 @@
 """Farmer call audio (ADR-10, T4.2). Default: a library of pre-recorded Punjabi and Hindi clips keyed by the SHA-256 of the
 normalised script. Bhashini TTS is optional (TTS_PROVIDER=bhashini) and its output is cached under the same key. If Bhashini
-fails, the library is used (spec section 13). DTMF prompts (press 1 / 2 / 9) come from a static set that never needs a
-provider. There is no speech recognition: input is keypad only."""
+fails, the library is used (spec section 13). DTMF prompts (press 1 / 2 / 9, then 1 to confirm or 0 to go back) come from a
+static set that never needs a provider. There is no speech recognition: input is keypad only."""
 from __future__ import annotations
 
 import logging
@@ -13,7 +13,8 @@ from integrations.bhashini import BhashiniClient, script_hash
 
 log = logging.getLogger("audio")
 LANGS = ("pa", "hi", "en")
-DTMF_PROMPTS = ("press_1", "press_2", "press_9", "invalid_key", "thank_you", "callback_offer")
+DTMF_PROMPTS = ("press_1", "press_2", "press_9", "confirm_1", "confirm_2", "confirm_9", "back_to_menu", "invalid_key", "thank_you",
+                "callback_offer")
 
 
 @dataclass(frozen=True)

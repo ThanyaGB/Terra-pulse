@@ -1,11 +1,11 @@
-"""ADR-10 / ADR-22 / T4.1 / T4.2: audio library is the default, Bhashini is optional and cached, no ASR path, keypad 9 routing."""
+"""ADR-10 / ADR-22 / T4.1 / T4.2: audio library is the default, Bhashini is optional and cached, no ASR path, keypad 9 routing to an FPO worker."""
 import pathlib
 import re
 from datetime import datetime, timezone
 
 import pytest
 
-from api.agronomist import AgronomistDesk
+from api.fpo_desk import FpoDesk
 from integrations.audio import DTMF_PROMPTS, AudioLibrary, AudioService
 from integrations.bhashini import AudioCache, BhashiniClient, script_hash
 from integrations.telephony import FakeProvider, OutsideCallingHours, TelephonyAdapter, within_calling_hours
@@ -103,25 +103,25 @@ CFG = {"pilot_hours": {"start": "08:00", "end": "18:00", "tz": "Asia/Kolkata"}, 
 
 
 def test_staffed_hours_put_the_farmer_in_the_queue():
-    d = AgronomistDesk(lambda: utc(6), CFG)
+    d = FpoDesk(lambda: utc(6), CFG)
     r1, r2 = d.request("P1"), d.request("P2")
     assert (r1["status"], r1["position"], r2["position"]) == ("queued", 1, 2)
 
 
 def test_outside_hours_a_callback_slot_is_offered_and_capacity_is_respected():
     now = utc(13)                                                           # 18:30 IST, after pilot hours
-    d = AgronomistDesk(lambda: now, CFG)
+    d = FpoDesk(lambda: now, CFG)
     slots = [d.request(f"P{i}")["slot"] for i in range(5)]
     assert slots[:2] == [{"date": "2026-10-23", "start": "19:30"}] * 2 and slots[2:4] == [{"date": "2026-10-23", "start": "20:00"}] * 2
     assert slots[4] == {"date": "2026-10-24", "start": "19:30"}
 
 
 def test_empty_roster_means_callback_even_in_pilot_hours():
-    d = AgronomistDesk(lambda: utc(6), {**CFG, "roster": []})
+    d = FpoDesk(lambda: utc(6), {**CFG, "roster": []})
     assert d.request("P1")["status"] == "callback_slot"
 
 
 def test_no_roster_and_no_slots_promises_no_time():
-    d = AgronomistDesk(lambda: utc(6), {**CFG, "roster": [], "callback_slots": []})
+    d = FpoDesk(lambda: utc(6), {**CFG, "roster": [], "callback_slots": []})
     r = d.request("P1")
     assert r["status"] == "callback_unscheduled" and r["slot"] is None

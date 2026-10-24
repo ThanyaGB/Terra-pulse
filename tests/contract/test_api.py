@@ -104,14 +104,45 @@ def test_booking_flow_and_operator_phone_exception(client, H):
     assert client.post("/v1/bookings", json={"parcel_id": pid}, headers=H("citizen")).status_code == 403
 
 
-def test_keypad_one_confirms_booking_and_two_requests_collection(client, H, contract_active):
+def _press(client, H, pid, *keys, lang="en"):
+    out = None
+    for k in keys:
+        out = client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": k, "lang": lang}, headers=H("farmer"))
+    return out
+
+
+def test_keypad_choice_then_one_confirms_booking_collection_and_fpo_worker(client, H, contract_active):
     pid = list(client.platform.world.parcels)[3]
-    r = client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "1"}, headers=H("farmer")).json()
-    assert r["status"] == "confirmed" and r["booking"]["status"] == "confirmed"
-    r2 = client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "2"}, headers=H("farmer")).json()
-    assert r2["collection"]["floor_price_inr_per_tonne"] == 1650
-    assert client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "9"}, headers=H("farmer")).json()["status"] == "callback_unscheduled"   # nobody rostered, no slots: no time promised
-    assert client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "5"}, headers=H("farmer")).status_code == 422
+    step1 = _press(client, H, pid, "1").json()
+    assert step1["status"] == "awaiting_confirmation" and step1["prompt"] == "confirm_1" and "Press 1 to confirm" in step1["prompt_text"]
+    assert not client.platform.world.bookings or all(b["parcel_id"] != pid or b["status"] != "confirmed" for b in client.platform.world.bookings.values())
+    r = _press(client, H, pid, "1").json()
+    assert r["status"] == "confirmed" and r["key"] == "1" and r["booking"]["status"] == "confirmed"
+    r2 = _press(client, H, pid, "2", "1").json()
+    assert r2["key"] == "2" and r2["collection"]["floor_price_inr_per_tonne"] == 1650
+    r9 = _press(client, H, pid, "9", "1").json()
+    assert r9["key"] == "9" and r9["status"] == "callback_unscheduled"      # nobody rostered, no slots: no time promised
+    assert _press(client, H, pid, "5").status_code == 422
+
+
+def test_keypad_zero_goes_back_and_nothing_is_booked(client, H):
+    pid = list(client.platform.world.parcels)[2]
+    before = len(client.platform.world.bookings)
+    assert _press(client, H, pid, "1").json()["status"] == "awaiting_confirmation"
+    back = _press(client, H, pid, "0").json()
+    assert back["status"] == "cancelled" and back["prompt"] == "back_to_menu" and len(client.platform.world.bookings) == before
+    assert _press(client, H, pid, "0").status_code == 400                  # 0 means nothing at the menu
+    assert _press(client, H, pid, "2").json()["status"] == "awaiting_confirmation"
+    assert _press(client, H, pid, "9").status_code == 400                  # only 1 or 0 while confirming
+    pa = _press(client, H, pid, "0", "9", lang="pa").json()
+    assert pa["prompt_text"].startswith("ਤੁਸੀਂ FPO ਕਰਮਚਾਰੀ")
+
+
+def test_a_new_call_session_starts_at_the_menu(client, H):
+    pid = list(client.platform.world.parcels)[1]
+    assert _press(client, H, pid, "2").json()["status"] == "awaiting_confirmation"
+    client.get(f"/v1/calls/session?lang=en&parcel_id={pid}", headers=H("farmer"))
+    assert _press(client, H, pid, "1").json()["status"] == "awaiting_confirmation"
 
 
 def test_call_rate_limit_per_parcel(client, H, calls_on):

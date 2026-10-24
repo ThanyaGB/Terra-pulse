@@ -46,5 +46,5 @@ module "kubernetes" {
 module "secrets" {
   source = "./modules/secrets"
   name   = "vayu/${var.env}"
-  secret_names = ["jwt-secret", "database-url", "redis-url", "twilio-auth-token", "exotel-api-token", "bhashini-key", "whatsapp-token", "data-gov-in-key"]
+  secret_names = ["jwt-secret", "database-url", "redis-url", "twilio-auth-token", "exotel-api-token", "bhashini-key", "data-gov-in-key"]
 }

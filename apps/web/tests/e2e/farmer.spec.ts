@@ -8,7 +8,9 @@ test.describe('Punjab locale', () => {
     await expect(answer).toHaveText('ਚੁੱਕੋ');
     await answer.click();
     await expect(page.getByTestId('subtitle')).toContainText('ਸਤ ਸ੍ਰੀ ਅਕਾਲ');
-    await page.getByRole('button', { name: /1 ਦਬਾਓ/ }).click();
+    await page.getByRole('button', { name: /^1 ਦਬਾਓ: ਸੁਪਰ ਸੀਡਰ/ }).click();
+    await expect(page.getByTestId('keypad-status')).toContainText('ਪੱਕਾ ਕਰਨ ਲਈ 1 ਦਬਾਓ');
+    await page.getByRole('button', { name: /^1 ਦਬਾਓ: ਹਾਂ, ਪੱਕਾ ਕਰੋ/ }).click();
     await expect(page.getByTestId('keypad-status')).toContainText('ਹੋ ਗਿਆ! ਸੁਪਰ ਸੀਡਰ ਤੁਹਾਡੇ ਲਈ ਪੱਕਾ ਹੈ।');
   });
 });
@@ -33,8 +35,11 @@ test.describe('English', () => {
     await page.getByTestId('play-pause').click();
     await expect(page.getByTestId('waveform')).toHaveAttribute('data-playing', 'false');
 
-    // keypad
+    // keypad: choose, then confirm with 1. No WhatsApp step anywhere.
     await page.getByRole('button', { name: /Press 1: Lock Super Seeder/ }).click();
+    await expect(page.getByTestId('confirm-step')).toContainText('You chose: Lock Super Seeder');
+    await page.getByRole('button', { name: /Press 1: Yes, confirm/ }).click();
+    await expect(page.getByText(/WhatsApp/i)).toHaveCount(0);
     await expect(page.getByTestId('keypad-status')).toContainText('Done! Super Seeder is locked for you.');
     await expect(page.getByTestId('keypad-status')).toContainText(/BK-/);
   });

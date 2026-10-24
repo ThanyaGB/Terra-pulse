@@ -1,4 +1,4 @@
-"""Keypad 9: agronomist queue or callback slot (ADR-22, gate G4). The queue is staffed by FPO coordinators in pilot hours.
+"""Keypad 9: talk to an FPO worker (ADR-22, gate G4). A live queue staffed by FPO workers in pilot hours.
 Outside them, or with nobody on the roster, the farmer is offered the next callback slot. With neither a roster nor slots
 configured the request is recorded and no response time is promised."""
 from __future__ import annotations
@@ -10,10 +10,10 @@ from zoneinfo import ZoneInfo
 from domain.config import load_yaml
 
 
-class AgronomistDesk:
+class FpoDesk:
     def __init__(self, clock: Callable[[], datetime] | None = None, cfg: dict[str, Any] | None = None) -> None:
         self.clock = clock or (lambda: datetime.now(timezone.utc))
-        self.cfg = cfg or load_yaml("agronomist.yaml")
+        self.cfg = cfg or load_yaml("fpo_desk.yaml")
         self.queue: list[dict[str, Any]] = []
         self.callbacks: list[dict[str, Any]] = []
         self._slot_use: dict[tuple[str, str], int] = {}
@@ -37,11 +37,11 @@ class AgronomistDesk:
     def request(self, parcel_id: str) -> dict[str, Any]:
         now = self.clock()
         if self.staffed_now(now):
-            ref = f"AG-Q-{len(self.queue) + 1:04d}"
+            ref = f"FPO-Q-{len(self.queue) + 1:04d}"
             entry: dict[str, Any] = {"reference_id": ref, "parcel_id": parcel_id, "requested_at": now.isoformat(timespec="seconds"), "kind": "queue", "status": "queued"}
             self.queue.append(entry)
             return {"status": "queued", "reference_id": ref, "position": sum(1 for e in self.queue if e["status"] == "queued")}
-        ref = f"AG-C-{len(self.callbacks) + 1:04d}"
+        ref = f"FPO-C-{len(self.callbacks) + 1:04d}"
         slot = self._next_slot(now)
         entry = {"reference_id": ref, "parcel_id": parcel_id, "requested_at": now.isoformat(timespec="seconds"), "kind": "callback"}
         if slot is None:

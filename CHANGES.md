@@ -16,6 +16,7 @@ Nothing was pushed. The uncommitted `README.md`, `vayu-swachh-spec.md` and `docs
 | 6 Directives, export, MCD | Directives are recommendation records. `GET /directives/{id}/export` returns an Ed25519-signed PDF, only after approval and with `ADVISORY_EXPORT_ENABLED`; audit entry written first. Traffic sender deleted. MCD adapter replaced by a no-op notifier. `municipal_supervisor` role; `/work-orders` list, accept, complete (photo + GPS, EXIF stripped, 100 m cell, duplicate-sync protection). `/ops` page with offline queue. | `services/api/{directives,advisory_pdf,signing,workorders}.py`, `services/api/routers/workorders.py`, `apps/web/src/routes/ops` | `test_directive_export.py`, `test_work_orders.py`, `ops-queue.test.ts` |
 | 7 Frontend | Export button only after approval; floor price and prices only with a contract; Trigger call disabled when telephony is off; alert opt-in hidden unless `PUBLIC_ALERTS_ENABLED`; disclaimer from config; attribution footer on policy, FPO, citizen, ops; key 9 messages; UI risk bands 35/60/80. | `apps/web/src/...` | `flags-and-attribution.test.tsx`, live-adapter additions |
 | 8 Verification | WhatsApp sender refuses when `WHATSAPP_ENABLED` is off. Default-flag API test. ADRs 13 to 22 generated; ADR-23 for the baseline. | `services/integrations/whatsapp`, `scripts/gen_adrs.py`, `docs/adr` | whatsapp flag test, default flags test |
+| 10 Farmer call: keypad confirm, no WhatsApp | WhatsApp removed everywhere: `integrations/whatsapp`, the `WHATSAPP_ENABLED` flag, its secret and tests, and the WhatsApp booking UI. Keypad is two-step: 1/2/9, then 1 confirms or 0 goes back; nothing is booked before the confirming 1. Key 9 now reaches an FPO worker (was agronomist). | `services/api/{services,fpo_desk}.py`, `services/api/routers/ops.py`, `services/integrations/{telephony,audio}`, `config/{features,fpo_desk}.yaml`, `farmer_scripts_v1.yaml` v3, `apps/web` and root `src` farmer screens | confirm/back/new-session keypad tests, FPO worker script test, WhatsApp-absent test |
 
 Required tests, all present and passing: attribution sum invariant (`test_domain.py`, grid cells); buy-back line absent without contract; export refused before approval; self-approval refused; work-order completion refused before acceptance; unmasked phone never serialised (`test_no_unmasked_farmer_phone_anywhere`); connector refuses unregistered source; every flag defaults to the spec value (parsed from the spec table).
 
@@ -36,9 +37,9 @@ Required tests, all present and passing: attribution sum invariant (`test_domain
 
 | Gate | Status | Why |
 | --- | --- | --- |
-| G1 Telecom compliance | BLOCKED | Code side is ready: flags default OFF, 503 and hours enforced, WhatsApp guarded. Needs live accounts, DLT and template approvals, and an approved disclosure (config marks it `approved: false`). |
+| G1 Telecom compliance | BLOCKED | Code side is ready: flags default OFF, 503 and hours enforced. Needs live accounts, DLT approvals, and an approved disclosure (config marks it `approved: false`). |
 | G2 Legal sign-off | BLOCKED | `config/disclaimers.yaml` is `legal_review: pending`; the signing method and production signing key are undecided. |
 | G3 Partner contract | BLOCKED | `PC-0007` is `unconfirmed`; with no active contract no price is shown anywhere. |
-| G4 Agronomist capacity | BLOCKED | `config/agronomist.yaml` has an empty roster and no callback slots. |
+| G4 FPO worker capacity | BLOCKED | `config/fpo_desk.yaml` has an empty roster and no callback slots. |
 | G5 Licence check | BLOCKED | Attribution text is seeded from the spec; `verified_at` is empty; OSM covariates are a placeholder. |
 | G6 Accuracy review | BLOCKED | No RMSE against held-out CPCB data, no baseline built from real archives, no fallback-usage report. |

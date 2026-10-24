@@ -90,7 +90,6 @@ Every former open question is closed here. The decision either builds a complete
 | --- | --- | --- |
 | `TELEPHONY_ENABLED` | `false` | Outbound farmer calls. Requires gate G1 |
 | `TTS_PROVIDER` | `prerecorded` | `prerecorded` or `bhashini` |
-| `WHATSAPP_ENABLED` | `false` | WhatsApp template messages. Requires gate G1 |
 | `PUBLIC_ALERTS_ENABLED` | `false` | Citizen PWA push alerts. Requires gate G2 |
 | `ADVISORY_EXPORT_ENABLED` | `true` | PDF export of approved diversion advisories for internal use |
 | `CALIBRATION_MODE` | `false` | Read-only analysis mode for offline calibration |
@@ -136,7 +135,7 @@ Every former open question is closed here. The decision either builds a complete
 **Rationale:** Burning is driven by economics and sowing deadlines.
 
 ### ADR-09: Keypad-first farmer interaction
-**Decision:** Farmers act by pressing 1, 2, or 9. No app, no speech input.
+**Decision:** Farmers act on the keypad only, in two steps. Menu: 1 (book a Super Seeder), 2 (straw pickup), 9 (talk to an FPO worker). The call then reads back the choice: 1 confirms, 0 goes back to the menu. Nothing is booked or requested before the confirming 1. No app, no WhatsApp, no speech input.
 **Rationale:** Removes literacy and smartphone barriers.
 
 ### ADR-10: Audio library first, Bhashini optional
@@ -161,7 +160,7 @@ Every former open question is closed here. The decision either builds a complete
 **Consequence:** Advisory export is internal-only until gate G2 passes.
 
 ### ADR-15: MCD dispatch through our supervisor portal
-**Decision:** The platform owns the work-order workflow. Supervisors see work orders in the `/ops` portal, accept them, and submit completion photos with GPS. SMS or WhatsApp notifications are optional through feature flags.
+**Decision:** The platform owns the work-order workflow. Supervisors see work orders in the `/ops` portal, accept them, and submit completion photos with GPS. SMS notifications are optional through feature flags.
 **Rationale:** The closed loop runs without any external MCD dependency.
 
 ### ADR-16: Open-licence forecast inputs with kriging downscaling
@@ -189,8 +188,8 @@ Every former open question is closed here. The decision either builds a complete
 **Decision:** The fire baseline comes from FIRMS satellite data. The air-quality baseline comes from CPCB stations in the Delhi pilot areas. Causal estimates use difference-in-differences with unaffected Delhi stations as controls, plus a synthetic-control variant.
 **Rationale:** Sangrur station coverage is not needed to measure the pilot.
 
-### ADR-22: Keypad 9 routes to a staffed agronomist queue
-**Decision:** Pressing 9 places the farmer in a queue for a human agronomist. The queue is staffed by FPO coordinators in pilot hours. Outside those hours the call offers a callback slot.
+### ADR-22: Keypad 9 routes to an FPO worker
+**Decision:** Pressing 9 (and confirming with 1) places the farmer in a queue for an FPO worker. The queue is staffed by FPO workers in pilot hours. Outside those hours the call offers a callback slot.
 **Rationale:** Avoids promising a human response the pilot cannot provide.
 
 ### ADR-23: Sentinel-2 NDVI is kept, refreshed on a 5-day schedule
@@ -226,8 +225,7 @@ Data sources ──► Ingestion services ──► PostGIS / TimescaleDB / obje
       ▼               ▼                    ▼                  ▼
   Integrations   Front-end apps       Audit log         Feature flags
   (Exotel/Twilio, (4 + supervisor     (append-only)     (config/features.yaml)
-   WhatsApp,       portal)
-   Bhashini opt.,
+   Bhashini opt.,  portal)
    Machinery CRM,
    Bio-CNG)
 ```
@@ -243,7 +241,6 @@ Data sources ──► Ingestion services ──► PostGIS / TimescaleDB / obje
 | Modelling | PyTorch (Sentinel-2 decay, fire clustering), kriging with external drift (SciPy/PyKrige), NOAA HYSPLIT |
 | Speech | Pre-recorded audio library (default); Bhashini TTS (optional) |
 | Telephony | Exotel (primary), Twilio (standby) |
-| Messaging | Meta WhatsApp Business API (approved templates only, flagged) |
 | Front end | React, TypeScript, Vite, Tailwind CSS, Three.js, GSAP, Mapbox GL |
 | Infrastructure | Docker, Kubernetes, Terraform, GitHub Actions |
 | Observability | OpenTelemetry, Prometheus, Grafana, Loki |
@@ -438,8 +435,7 @@ Every event carries `event_id` (UUID), `trace_id`, `schema_version`, `emitted_at
 
 | Partner | Direction | Mechanism | Notes |
 | --- | --- | --- | --- |
-| Exotel (primary), Twilio (standby) | Outbound calls; inbound webhooks | REST + signed webhooks | DTMF 1, 2, 9. Behind `TELEPHONY_ENABLED` |
-| Meta WhatsApp Business | Outbound | Cloud API, approved templates only | Behind `WHATSAPP_ENABLED` |
+| Exotel (primary), Twilio (standby) | Outbound calls; inbound webhooks | REST + signed webhooks | DTMF 1, 2, 9, then 1 (confirm) or 0 (back). Behind `TELEPHONY_ENABLED` |
 | Bhashini | Outbound TTS (optional) | REST | Behind `TTS_PROVIDER=bhashini`. Cached by script hash |
 | Pre-recorded audio library | Internal | File store | Default TTS path |
 | Machinery CRM | Bidirectional | REST + polling | Optimistic locking on `version` |
@@ -467,7 +463,7 @@ Every event carries `event_id` (UUID), `trace_id`, `schema_version`, `emitted_at
 - **Encryption:** TLS 1.2+ in transit. AES-256 at rest.
 - **PII:** farmer phone numbers masked at the API boundary (ADR-06). Photos stripped of EXIF except GPS (ADR-12).
 - **Audit log:** append-only, hash-chained. Covers directives, approvals, bookings, calls, work-order events, flag changes, config changes, and exports.
-- **Rate limits:** per parcel, 2 calls per 24 h and 3 WhatsApp messages per 24 h by default. Configurable.
+- **Rate limits:** per parcel, 2 calls per 24 h by default. Configurable.
 - **RBAC:** enforced in FastAPI dependencies. Each endpoint's role set is tested in contract tests.
 - **Dependency and container scanning:** in CI.
 - **Threat model:** written before pilot (T6.10).
@@ -501,7 +497,7 @@ Every event carries `event_id` (UUID), `trace_id`, `schema_version`, `emitted_at
 **Farmer simulator (`/farmer`)**
 - Phone frame. Language toggle (ਪੰਜਾਬੀ / हिंदी / English), default by browser locale.
 - Caller ID, timer, play/pause with waveform, synced subtitles.
-- Keypad: 1 (book Super Seeder), 2 (collection request), 9 (agronomist queue or callback slot per ADR-22).
+- Keypad: 1 (book Super Seeder), 2 (collection request), 9 (FPO worker queue or callback slot per ADR-22); then 1 to confirm or 0 to go back (ADR-09).
 - Keyboard and screen-reader operable.
 
 **Citizen PWA (`/citizen`)**
@@ -560,7 +556,6 @@ vayu-swachh/
 │   ├── api/
 │   └── integrations/
 │       ├── telephony/                # Exotel + Twilio adapter
-│       ├── whatsapp/
 │       ├── audio/                    # pre-recorded library + Bhashini TTS
 │       ├── machinery_crm/
 │       └── biocng/
@@ -618,7 +613,7 @@ Tasks are ordered by dependency. Each has an acceptance criterion. Finish a task
 
 **T0.4: Feature flags.**
 - Load `config/features.yaml` with defaults from section 3. Read at runtime. Changes audited.
-- Two-person approval for flags marked externally facing (`PUBLIC_ALERTS_ENABLED`, `TELEPHONY_ENABLED`, `WHATSAPP_ENABLED`).
+- Two-person approval for flags marked externally facing (`PUBLIC_ALERTS_ENABLED`, `TELEPHONY_ENABLED`).
 - *Acceptance:* a flag change without approval is rejected; flag changes appear in the audit log.
 
 ### Phase 1: Data and Schema
@@ -751,10 +746,10 @@ Tasks are ordered by dependency. Each has an acceptance criterion. Finish a task
 
 **T4.1: Telephony adapter.**
 - Adapter interface. Exotel and Twilio implementations.
-- Signed webhooks for call status and DTMF (1, 2, 9).
+- Signed webhooks for call status and DTMF (0, 1, 2, 9).
 - Health check and failover (section 10.1). Disclosure line and calling hours (section 10.2).
 - Transcript and intent summary stored; recordings retained per section 7.3.
-- *Acceptance:* DTMF 1 confirms booking; failover tested with simulated outage; in-progress calls not dropped; calls refused outside permitted hours.
+- *Acceptance:* menu 1 then confirm 1 books the machine, 0 books nothing; failover tested with simulated outage; in-progress calls not dropped; calls refused outside permitted hours.
 
 **T4.2: Audio library and Bhashini.**
 - Audio library: clips keyed by SHA-256 of the normalised script. Native speakers record the Punjabi and Hindi scripts before the pilot.
@@ -762,9 +757,8 @@ Tasks are ordered by dependency. Each has an acceptance criterion. Finish a task
 - Remove any ASR code path.
 - *Acceptance:* every script in the templates has a clip; with Bhashini off, calls play entirely from the library; second Bhashini request for the same script hits the cache.
 
-**T4.3: WhatsApp integration.**
-- Template sender with a template registry. Refuses unapproved templates. Behind `WHATSAPP_ENABLED`.
-- *Acceptance:* unapproved template raises an error; flag off means no send.
+**T4.3: WhatsApp integration (removed).**
+- Dropped from scope: farmers confirm on the keypad (ADR-09), so there is no WhatsApp sender, template registry or flag.
 
 **T4.4: Machinery CRM sync.**
 - Pull status and push bookings with optimistic locking on `version`.
@@ -782,7 +776,7 @@ Tasks are ordered by dependency. Each has an acceptance criterion. Finish a task
 - *Acceptance:* PDF contains the directive ID, area, action, both approvers, and the disclaimer; no network call to any external traffic system exists in the codebase (asserted by a test).
 
 **T4.7: Rate limiting.**
-- Redis-backed per-parcel caps for calls and WhatsApp.
+- Redis-backed per-parcel caps for calls.
 - *Acceptance:* caps enforced across instances in a load test.
 
 ### Phase 5: Front End
@@ -886,10 +880,10 @@ Build and pilot testing run without these gates. The gates control only when ext
 
 | Gate | Controls | Pass condition | Owner |
 | --- | --- | --- | --- |
-| G1 Telecom compliance | `TELEPHONY_ENABLED`, `WHATSAPP_ENABLED` | Exotel and Twilio accounts live; DLT and WhatsApp template approvals recorded; disclosure script approved | Pilot operations |
+| G1 Telecom compliance | `TELEPHONY_ENABLED` | Exotel and Twilio accounts live; DLT approvals recorded; disclosure script approved | Pilot operations |
 | G2 Legal sign-off | `PUBLIC_ALERTS_ENABLED`, advisory export to external officers | Legal approves disclaimers (`config/disclaimers.yaml`), advisory format, and signing method | Legal |
 | G3 Partner contract | Buy-back line in farmer scripts | Signed contract and rate row for each area | FPO and partners |
-| G4 Agronomist capacity | Keypad 9 queue | Staffed roster in pilot hours, or callback slots configured | FPO coordinators |
+| G4 FPO worker capacity | Keypad 9 queue | Staffed roster in pilot hours, or callback slots configured | FPO coordinators |
 | G5 Licence check | Public release of derived data | Attribution text verified for every source in `data-licences.md` | Data lead |
 | G6 Accuracy review | Forecast use in public advice | Pilot RMSE and fallback usage reported to the review board | Modelling lead |
 

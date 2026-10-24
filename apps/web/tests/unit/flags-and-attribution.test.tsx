@@ -29,7 +29,8 @@ beforeEach(() => { localStorage.clear(); state.fail = false; state.cfg = cfg(); 
 
 describe('feature flags in the apps', () => {
   it('safe defaults switch every external feature off', () => {
-    expect(SAFE_DEFAULTS.flags).toMatchObject({ TELEPHONY_ENABLED: false, WHATSAPP_ENABLED: false, PUBLIC_ALERTS_ENABLED: false, ADVISORY_EXPORT_ENABLED: false });
+    expect(SAFE_DEFAULTS.flags).toMatchObject({ TELEPHONY_ENABLED: false, PUBLIC_ALERTS_ENABLED: false, ADVISORY_EXPORT_ENABLED: false });
+    expect(SAFE_DEFAULTS.flags).not.toHaveProperty('WHATSAPP_ENABLED');
   });
 
   it('push alerts are hidden while PUBLIC_ALERTS_ENABLED is off, and shown when it is on', async () => {

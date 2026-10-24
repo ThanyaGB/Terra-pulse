@@ -81,7 +81,6 @@ Seven adapters were built against test doubles — no live credentials required:
 
 - **Telephony** (Twilio / Exotel) with an automatic failover state machine that switches providers on three consecutive health-check failures without dropping in-progress calls.
 - **Bhashini** ASR/TTS with an SHA-256 audio cache to avoid redundant provider calls on repeated scripts.
-- **WhatsApp** template sender that rejects unapproved templates at the code level.
 - **Machinery CRM** with optimistic locking and a conflict handler that surfaces booking collisions to the FPO queue.
 - **Bio-CNG**, **Traffic**, and **MCD** adapters with per-parcel Redis-backed rate limits.
 

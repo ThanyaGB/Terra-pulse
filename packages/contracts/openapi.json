@@ -254,11 +254,22 @@
         "properties": {
           "key": {
             "enum": [
+              "0",
               "1",
               "2",
               "9"
             ],
             "title": "Key",
+            "type": "string"
+          },
+          "lang": {
+            "default": "pa",
+            "enum": [
+              "pa",
+              "hi",
+              "en"
+            ],
+            "title": "Lang",
             "type": "string"
           },
           "parcel_id": {
@@ -929,7 +940,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Keypad press 1/2/9 from the simulator or IVR (extension)",
+        "summary": "Keypad press from the simulator or IVR: 1/2/9, then 1 to confirm or 0 to go back (extension)",
         "tags": [
           "farmer"
         ]

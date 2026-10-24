@@ -11,7 +11,6 @@ import { SkeletonBlock } from '@/design-system/Skeleton';
 import { useI18n } from '@/i18n';
 import { formatInr, mmss } from '@/lib/format';
 import { playDtmf, speakText } from './callAudio';
-import { BookingSheet } from './BookingSheet';
 import { KeypadPanel } from './KeypadPanel';
 import { useCallAudio } from './useCallAudio';
 import { Waveform } from './Waveform';
@@ -20,6 +19,7 @@ import type { MessageKey } from '@/i18n';
 type Phase = 'ringing' | 'live' | 'ended';
 
 const DONE_KEY: Record<KeyAction, MessageKey> = { '1': 'farmer.done1', '2': 'farmer.done2', '9': 'farmer.done9' };
+const CONFIRM_KEY: Record<KeyAction, MessageKey> = { '1': 'farmer.confirm1', '2': 'farmer.confirm2', '9': 'farmer.confirm9' };
 
 export default function FarmerPage() {
   const { lang, t } = useI18n();
@@ -30,7 +30,6 @@ export default function FarmerPage() {
 
   // English gloss under non-English subtitles
   const gloss = useAsync(() => (lang === 'en' ? Promise.resolve(null) : api.getCallSession('en')), [lang]);
-  const [booking, setBooking] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>('ringing');
   const [elapsed, setElapsed] = useState(0);
   const { audio, line, playing, ended, voiceMissing, answer, toggle, stop } = useCallAudio(session, phase === 'live');
@@ -49,9 +48,14 @@ export default function FarmerPage() {
     [session, lang],
   );
 
-  const onConfirmed = useCallback((key: KeyAction, r: BookingReceipt) => {
+  // the call reads back each step, like a real phone menu
+  const onChoose = useCallback((key: KeyAction) => {
     stop();
-    if (key === '1') setBooking(r.referenceId);
+    speakText(t(CONFIRM_KEY[key]), lang);
+  }, [lang, stop, t]);
+  const onBack = useCallback(() => speakText(t('farmer.backNote'), lang), [lang, t]);
+  const onConfirmed = useCallback((key: KeyAction, _r: BookingReceipt) => {
+    stop();
     speakText(t(DONE_KEY[key]), lang);
   }, [lang, stop, t]);
 
@@ -63,7 +67,6 @@ export default function FarmerPage() {
   function hangUp() {
     stop();
     setPhase('ended');
-    setBooking(null);
   }
 
   return (
@@ -136,9 +139,8 @@ export default function FarmerPage() {
                       </div>
                     )}
 
-                    <KeypadPanel book={book} onTone={(k) => playDtmf(k)} onConfirmed={onConfirmed} prices={s.prices} />
+                    <KeypadPanel book={book} onTone={(k) => playDtmf(k)} onChoose={onChoose} onBack={onBack} onConfirmed={onConfirmed} prices={s.prices} />
 
-                    {booking && <BookingSheet referenceId={booking} onClose={() => setBooking(null)} />}
 
                     <p className="m-0 text-center text-sm text-[#C9DDF0]">{t('farmer.calmNote')}</p>
                     <button type="button" className="btn btn-lg !bg-[#8A1C1C] !text-white" onClick={hangUp}>{t('farmer.endCall')}</button>

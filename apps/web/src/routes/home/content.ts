@@ -70,7 +70,3 @@ export const plumes = Array.from({ length: 8 }, (_, q) => ({ x: 140 + (q % 4) * 
 
 export const city = Array.from({ length: 9 }, (_, b) => { const h = 18 + ((b * 13) % 5) * 9; return { x: 584 + b * 13, y: 392 - h, h }; });
 
-const waText = 'Vayu-Swachh demo booking: Super Seeder for farm PB-SGR-1142 (6 acres), Bhawanigarh. Rate Rs 750/acre (demo).';
-/** Placeholder number: replace before any real use. */
-export const WA_BASE = 'https://wa.me/910000000000'; // placeholder number
-export const waLink = WA_BASE + '?text=' + encodeURIComponent(waText);

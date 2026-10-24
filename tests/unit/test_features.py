@@ -8,7 +8,7 @@ from api.audit import AuditLog
 from domain.features import ApprovalRequired, FeatureFlags, InvalidFlagValue, UnknownFlag
 
 SPEC = Path(__file__).resolve().parents[2] / "vayu-swachh-spec.md"
-EXTERNAL = ("PUBLIC_ALERTS_ENABLED", "TELEPHONY_ENABLED", "WHATSAPP_ENABLED")
+EXTERNAL = ("PUBLIC_ALERTS_ENABLED", "TELEPHONY_ENABLED")
 
 
 def spec_defaults() -> dict[str, object]:
@@ -23,14 +23,14 @@ def spec_defaults() -> dict[str, object]:
 def test_every_flag_defaults_to_the_spec_value():
     flags = FeatureFlags.load()
     expected = spec_defaults()
-    assert set(expected) == {"TELEPHONY_ENABLED", "TTS_PROVIDER", "WHATSAPP_ENABLED", "PUBLIC_ALERTS_ENABLED", "ADVISORY_EXPORT_ENABLED", "CALIBRATION_MODE"}
+    assert set(expected) == {"TELEPHONY_ENABLED", "TTS_PROVIDER", "PUBLIC_ALERTS_ENABLED", "ADVISORY_EXPORT_ENABLED", "CALIBRATION_MODE"}
     for name, want in expected.items():
         assert flags.value(name) == want, name
 
 
 def test_hard_defaults_for_external_features():
     f = FeatureFlags.load()
-    assert f.value("TELEPHONY_ENABLED") is False and f.value("WHATSAPP_ENABLED") is False and f.value("PUBLIC_ALERTS_ENABLED") is False
+    assert f.value("TELEPHONY_ENABLED") is False and f.value("PUBLIC_ALERTS_ENABLED") is False
     assert f.value("TTS_PROVIDER") == "prerecorded"
     assert f.value("FORECAST_GNN_ENABLED") is False
 

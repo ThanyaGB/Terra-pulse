@@ -12,10 +12,6 @@ flags:
     options: [prerecorded, bhashini]
     externally_facing: false
     description: Audio source for farmer calls
-  WHATSAPP_ENABLED:
-    default: false
-    externally_facing: true      # gate G1
-    description: WhatsApp template messages
   PUBLIC_ALERTS_ENABLED:
     default: false
     externally_facing: true      # gate G2

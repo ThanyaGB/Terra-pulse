@@ -13,7 +13,7 @@ from domain.features import FeatureFlags, FlagError
 
 router = APIRouter()
 
-PUBLIC_FLAGS = ("TELEPHONY_ENABLED", "WHATSAPP_ENABLED", "PUBLIC_ALERTS_ENABLED", "ADVISORY_EXPORT_ENABLED", "TTS_PROVIDER")
+PUBLIC_FLAGS = ("TELEPHONY_ENABLED", "PUBLIC_ALERTS_ENABLED", "ADVISORY_EXPORT_ENABLED", "TTS_PROVIDER")
 
 
 def features(request: Request) -> FeatureFlags:

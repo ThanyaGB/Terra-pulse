@@ -13,7 +13,7 @@ import { scriptFor } from './script';
 
 /** Simulated configuration. The demo plays a pilot where telephony has passed its gate; public alerts have not. */
 export const MOCK_CONFIG: PublicConfig = {
-  flags: { TELEPHONY_ENABLED: true, WHATSAPP_ENABLED: false, PUBLIC_ALERTS_ENABLED: false, ADVISORY_EXPORT_ENABLED: true, TTS_PROVIDER: 'prerecorded' },
+  flags: { TELEPHONY_ENABLED: true, PUBLIC_ALERTS_ENABLED: false, ADVISORY_EXPORT_ENABLED: true, TTS_PROVIDER: 'prerecorded' },
   disclaimers: {
     citizen_advice: { en: 'This is environmental exposure guidance, not medical advice. If you feel unwell, speak to a doctor.' },
     directive: { en: 'This advisory is a recommendation to the responsible authorities. The decision to act rests with them.' },

@@ -96,7 +96,7 @@ export interface DirectiveExport {
 }
 /** GET /config/public */
 export interface PublicConfig {
-  flags: { TELEPHONY_ENABLED: boolean; WHATSAPP_ENABLED: boolean; PUBLIC_ALERTS_ENABLED: boolean; ADVISORY_EXPORT_ENABLED: boolean; TTS_PROVIDER: string };
+  flags: { TELEPHONY_ENABLED: boolean; PUBLIC_ALERTS_ENABLED: boolean; ADVISORY_EXPORT_ENABLED: boolean; TTS_PROVIDER: string };
   disclaimers: Record<string, Record<string, string>>;
 }
 
@@ -184,7 +184,7 @@ export interface CallSession {
   prices: { superSeederPerAcre: number | null; strawPerTonne: number | null };
 }
 export type KeyAction = '1' | '2' | '9';
-/** POST /farmer/bookings */
+/** Sent only after the farmer confirms the choice with 1 (0 goes back on the phone and sends nothing). */
 export interface BookingRequest {
   sessionId: string;
   key: KeyAction;
@@ -193,7 +193,7 @@ export interface BookingRequest {
 export interface BookingReceipt {
   referenceId: string;
   key: KeyAction;
-  /** key 9: 'queued' (staffed agronomist queue), 'callback_slot', or 'callback_unscheduled' (recorded, no time promised); 'connecting' is the demo mock */
+  /** key 9: 'queued' (FPO worker queue), 'callback_slot', or 'callback_unscheduled' (recorded, no time promised); 'connecting' is the demo mock */
   status: 'confirmed' | 'connecting' | 'queued' | 'callback_slot' | 'callback_unscheduled';
   slot?: { date: string; start: string } | null;
 }

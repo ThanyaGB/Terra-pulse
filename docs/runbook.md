@@ -77,4 +77,4 @@ Secrets live in the secret manager (`vayu/<env>/...`), never in git or `.env` fi
 ## 8. Known gaps to read before relying on this runbook
 
 - Not yet exercised in a real cluster (no Docker daemon or cloud access in the development environment). Walk the staging deployment first.
-- Real telephony, WhatsApp, Bhashini, MCD and traffic integrations are implemented as adapters with test doubles; credentials and partner interfaces are open questions (see `docs/open-questions.md`).
+- Real telephony, Bhashini, MCD and traffic integrations are implemented as adapters with test doubles; credentials and partner interfaces are open questions (see `docs/open-questions.md`).

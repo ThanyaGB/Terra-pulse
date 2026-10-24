@@ -20,6 +20,8 @@ const responses: Record<string, unknown> = {
   },
   '/work-orders': { items: [{ id: 'WO-1', area_id: 'ito', area: 'ITO', action_type: 'fog_cannons', grap_tier: 'stage_3', status: 'completed', created_at: 'x', due_by: '2026-10-24T10:00:00Z',
     sla_breached: false, accepted_by: 's', accepted_at: 'a', completed_at: 'c', completion_grid_ref: 'G', roi_window: null, roi: { delta_pm25: 31.5, control_area: 'rk-puram', measured_at: 'm' } }] },
+  '/calls/session': { session_id: 'SES-1', parcel_id: 'PCL-SGR-0530', caller_name: 'Sangrur Machinery Cooperative', caller_id: '01672-XXXXXX', farmer_first_name: 'Gurpreet',
+    audio_url: null, lines: ['a', 'b'], prices: { super_seeder_per_acre: null, straw_per_tonne: null } },
   '/plume/projection': { generatedAt: 'x', horizonHours: 72, windSpeedKmh: 4, sources: [], corridor: [], hoursToReachNcr: null, streets: [] },
 };
 
@@ -108,5 +110,20 @@ describe('live adapter: supervisor portal', () => {
     expect((body as FormData).get('client_request_id')).toBe('req-12345678');
     expect((body as FormData).get('lat')).toBe('28.6');
     expect(r.duplicate).toBe(true);
+  });
+
+  it('keypad: sends the choice, then the confirming 1, as the farmer, in the call language', async () => {
+    const { client } = fakeClient();
+    const post = client.post as unknown as ReturnType<typeof vi.fn>;
+    post.mockResolvedValueOnce({ key: '9', status: 'awaiting_confirmation', prompt: 'confirm_9', prompt_text: 'x' })
+      .mockResolvedValueOnce({ key: '9', status: 'callback_unscheduled', reference_id: 'FPO-C-0001', slot: null });
+    const api = createLiveApi('http://x/v1', client);
+    const s = await api.getCallSession('pa');
+    const r = await api.bookKey({ sessionId: s.sessionId, key: '9', lang: 'pa' });
+    expect(post.mock.calls.map((c) => [c[0], c[1], c[2]])).toEqual([
+      ['/calls/keypress', 'farmer', { parcel_id: 'PCL-SGR-0530', key: '9', lang: 'pa' }],
+      ['/calls/keypress', 'farmer', { parcel_id: 'PCL-SGR-0530', key: '1', lang: 'pa' }],
+    ]);
+    expect(r).toEqual({ referenceId: 'FPO-C-0001', key: '9', status: 'callback_unscheduled', slot: null });
   });
 });

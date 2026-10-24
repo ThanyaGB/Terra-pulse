@@ -64,6 +64,18 @@ def render_script(lang: str, name: str, days_to_harvest: int, cfg: dict[str, Any
     return lines
 
 
+def keypad_prompt(lang: str, choice: str | None = None, cfg: dict[str, Any] | None = None) -> str:
+    """Second keypad step (ADR-09): the confirm line for a menu choice (1, 2 or 9), or the back-to-menu line when choice is None."""
+    cfg = cfg or load_scripts_cfg()
+    table = cfg["confirm"] if choice is not None else cfg["back_to_menu"]
+    by_lang = table.get(lang) or table["en"]
+    text = str(by_lang[choice] if choice is not None else by_lang)
+    bad = blocked_words_found(text, lang, cfg)
+    if bad:
+        raise ValueError(f"punitive wording in {lang} keypad prompt: {bad}")
+    return text
+
+
 def match_machine(world: World, machine_type: str, lat: float, lon: float) -> tuple[Machine, float] | None:
     return world.crm.nearest_available(machine_type, lat, lon)
 

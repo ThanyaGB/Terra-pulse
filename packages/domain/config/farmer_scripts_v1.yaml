@@ -2,7 +2,7 @@
 # Machine-drafted Punjabi and Hindi: needs native-speaker review (open question 3).
 # Rates are NOT in this file (ADR-17). A line marked `requires: <rate key>` is spoken only when an active partner contract
 # supplies that rate (config/partner_rates.yaml); with no active contract the line is omitted.
-version: 2
+version: 3
 rate_keys:
   seeder_rate: super_seeder_rental_inr_per_acre
   straw_price: straw_floor_inr_per_tonne
@@ -13,21 +13,41 @@ lines:
     - "A Super Seeder can sow wheat straight into the straw, no burning needed."
     - {text: "Super Seeder rental is ₹{seeder_rate} per acre.", requires: seeder_rate}
     - {text: "We also buy your straw for ₹{straw_price} per tonne.", requires: straw_price}
-    - "Press 1 to lock a Super Seeder, 2 for straw collection, or 9 to speak to an agronomist."
+    - "Press 1 to book a Super Seeder, 2 for straw collection, or 9 to talk to an FPO worker."
   hi:
     - "नमस्ते {name} जी, मैं संगरूर मशीनरी सहकारी समिति से बोल रहा हूँ।"
     - "आपकी धान की कटाई अगले {days_to_harvest} दिनों में होने वाली है।"
     - "सुपर सीडर पराली में ही गेहूँ बो देता है, जलाने की ज़रूरत नहीं।"
     - {text: "सुपर सीडर का किराया ₹{seeder_rate} प्रति एकड़ है।", requires: seeder_rate}
     - {text: "हम आपकी पराली ₹{straw_price} प्रति टन पर खरीदते हैं।", requires: straw_price}
-    - "सुपर सीडर पक्का करने के लिए 1, पराली उठवाने के लिए 2, कृषि विशेषज्ञ से बात करने के लिए 9 दबाएँ।"
+    - "सुपर सीडर पक्का करने के लिए 1, पराली उठवाने के लिए 2, FPO कर्मचारी से बात करने के लिए 9 दबाएँ।"
   pa:
     - "ਸਤ ਸ੍ਰੀ ਅਕਾਲ {name} ਜੀ, ਮੈਂ ਸੰਗਰੂਰ ਮਸ਼ੀਨਰੀ ਸਹਿਕਾਰੀ ਸਭਾ ਵੱਲੋਂ ਬੋਲ ਰਿਹਾ ਹਾਂ।"
     - "ਤੁਹਾਡੇ ਝੋਨੇ ਦੀ ਕਟਾਈ ਅਗਲੇ {days_to_harvest} ਦਿਨਾਂ ਵਿੱਚ ਹੋਣ ਵਾਲੀ ਹੈ।"
     - "ਸੁਪਰ ਸੀਡਰ ਪਰਾਲੀ ਵਿੱਚ ਹੀ ਕਣਕ ਬੀਜ ਦਿੰਦਾ ਹੈ, ਸਾੜਨ ਦੀ ਲੋੜ ਨਹੀਂ।"
     - {text: "ਸੁਪਰ ਸੀਡਰ ਦਾ ਕਿਰਾਇਆ ₹{seeder_rate} ਪ੍ਰਤੀ ਏਕੜ ਹੈ।", requires: seeder_rate}
     - {text: "ਅਸੀਂ ਤੁਹਾਡੀ ਪਰਾਲੀ ₹{straw_price} ਪ੍ਰਤੀ ਟਨ ਦੇ ਭਾਅ ਖਰੀਦਦੇ ਹਾਂ।", requires: straw_price}
-    - "ਸੁਪਰ ਸੀਡਰ ਪੱਕਾ ਕਰਨ ਲਈ 1, ਪਰਾਲੀ ਚੁੱਕਵਾਉਣ ਲਈ 2, ਖੇਤੀ ਮਾਹਰ ਨਾਲ ਗੱਲ ਕਰਨ ਲਈ 9 ਦਬਾਓ।"
+    - "ਸੁਪਰ ਸੀਡਰ ਪੱਕਾ ਕਰਨ ਲਈ 1, ਪਰਾਲੀ ਚੁੱਕਵਾਉਣ ਲਈ 2, FPO ਕਰਮਚਾਰੀ ਨਾਲ ਗੱਲ ਕਰਨ ਲਈ 9 ਦਬਾਓ।"
+# Second keypad step (ADR-09): after 1, 2 or 9 the farmer hears what they chose and presses 1 to confirm or 0 to go back.
+# Nothing is booked, requested or queued until the 1 is pressed. These are static lines (no names or prices) so they can be
+# recorded once as DTMF prompts (integrations/audio DTMF_PROMPTS: confirm_1, confirm_2, confirm_9, back_to_menu).
+confirm:
+  en:
+    "1": "You chose the Super Seeder. Press 1 to confirm, or 0 to go back."
+    "2": "You chose straw pickup. Press 1 to confirm, or 0 to go back."
+    "9": "You chose to talk to an FPO worker. Press 1 to confirm, or 0 to go back."
+  hi:
+    "1": "आपने सुपर सीडर चुना है। पक्का करने के लिए 1 दबाएँ, वापस जाने के लिए 0 दबाएँ।"
+    "2": "आपने पराली उठवाना चुना है। पक्का करने के लिए 1 दबाएँ, वापस जाने के लिए 0 दबाएँ।"
+    "9": "आपने FPO कर्मचारी से बात करना चुना है। पक्का करने के लिए 1 दबाएँ, वापस जाने के लिए 0 दबाएँ।"
+  pa:
+    "1": "ਤੁਸੀਂ ਸੁਪਰ ਸੀਡਰ ਚੁਣਿਆ ਹੈ। ਪੱਕਾ ਕਰਨ ਲਈ 1 ਦਬਾਓ, ਵਾਪਸ ਜਾਣ ਲਈ 0 ਦਬਾਓ।"
+    "2": "ਤੁਸੀਂ ਪਰਾਲੀ ਚੁਕਵਾਉਣਾ ਚੁਣਿਆ ਹੈ। ਪੱਕਾ ਕਰਨ ਲਈ 1 ਦਬਾਓ, ਵਾਪਸ ਜਾਣ ਲਈ 0 ਦਬਾਓ।"
+    "9": "ਤੁਸੀਂ FPO ਕਰਮਚਾਰੀ ਨਾਲ ਗੱਲ ਕਰਨਾ ਚੁਣਿਆ ਹੈ। ਪੱਕਾ ਕਰਨ ਲਈ 1 ਦਬਾਓ, ਵਾਪਸ ਜਾਣ ਲਈ 0 ਦਬਾਓ।"
+back_to_menu:
+  en: "No problem. Press 1 for the Super Seeder, 2 for straw pickup, or 9 to talk to an FPO worker."
+  hi: "कोई बात नहीं। सुपर सीडर के लिए 1, पराली उठवाने के लिए 2, FPO कर्मचारी से बात करने के लिए 9 दबाएँ।"
+  pa: "ਕੋਈ ਗੱਲ ਨਹੀਂ। ਸੁਪਰ ਸੀਡਰ ਲਈ 1, ਪਰਾਲੀ ਚੁਕਵਾਉਣ ਲਈ 2, FPO ਕਰਮਚਾਰੀ ਨਾਲ ਗੱਲ ਕਰਨ ਲਈ 9 ਦਬਾਓ।"
 blocked_words:
   en: [fine, penalty, punish, prosecute, illegal, challan, jail, violation, arrest]
   hi: ["जुर्माना", "सज़ा", "सजा", "अपराध", "चालान", "गिरफ्तार", "मुकदमा"]

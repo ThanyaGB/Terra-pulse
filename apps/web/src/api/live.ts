@@ -182,10 +182,19 @@ export function createLiveApi(baseUrl: string, client: Client = createClient(bas
         prices: { superSeederPerAcre: r.prices.super_seeder_per_acre, strawPerTonne: r.prices.straw_per_tonne },
       };
     },
+    /**
+     * The backend keypad has two steps, like the phone line (ADR-09): the menu key (1, 2 or 9) only asks for confirmation,
+     * and the confirming 1 books. The screen runs both steps itself (0 = back never leaves the phone), so once the farmer
+     * has confirmed on screen this sends the choice and then the confirming 1.
+     */
     async bookKey(req: BookingRequest): Promise<BookingReceipt> {
       const parcel = sessions.get(req.sessionId);
       if (!parcel) throw new ApiError('Call session expired', 410);
-      const r = await post<{ key: BookingReceipt['key']; status: BookingReceipt['status']; reference_id: string; slot?: BookingReceipt['slot'] }>('/calls/keypress', 'farmer', { parcel_id: parcel, key: req.key });
+      type KeyReply = { key: BookingReceipt['key']; status: BookingReceipt['status'] | 'awaiting_confirmation'; reference_id?: string; slot?: BookingReceipt['slot'] };
+      const step1 = await post<KeyReply>('/calls/keypress', 'farmer', { parcel_id: parcel, key: req.key, lang: req.lang });
+      if (step1.status !== 'awaiting_confirmation') throw new ApiError('Unexpected keypad state', 409);
+      const r = await post<KeyReply>('/calls/keypress', 'farmer', { parcel_id: parcel, key: '1', lang: req.lang });
+      if (r.status === 'awaiting_confirmation' || !r.reference_id) throw new ApiError('Booking was not confirmed', 409);
       return { referenceId: r.reference_id, key: r.key, status: r.status, slot: r.slot ?? null };
     },
 

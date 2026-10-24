@@ -5,7 +5,7 @@ import { readJson, writeJson } from '@/routes/citizen/storage';
 
 /** What a client may do until the server says otherwise: nothing external is on (ADR-19). */
 export const SAFE_DEFAULTS: PublicConfig = {
-  flags: { TELEPHONY_ENABLED: false, WHATSAPP_ENABLED: false, PUBLIC_ALERTS_ENABLED: false, ADVISORY_EXPORT_ENABLED: false, TTS_PROVIDER: 'prerecorded' },
+  flags: { TELEPHONY_ENABLED: false, PUBLIC_ALERTS_ENABLED: false, ADVISORY_EXPORT_ENABLED: false, TTS_PROVIDER: 'prerecorded' },
   disclaimers: { citizen_advice: { en: 'This is environmental exposure guidance, not medical advice. If you feel unwell, speak to a doctor.' } },
 };
 const KEY = 'vs.publicConfig';

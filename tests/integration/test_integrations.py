@@ -9,7 +9,6 @@ from integrations.biocng import BioCngPartner, CollectionRequest, LedgerEntry, R
 from integrations.machinery_crm import CrmSync
 from integrations.mcd import NullNotifier
 from integrations.telephony import FakeProvider, TelephonyAdapter, TwilioProvider
-from integrations.whatsapp import TemplateNotApproved, TemplateRegistry, WhatsAppDisabled, WhatsAppSender
 
 
 def test_failover_after_three_failures_and_in_progress_calls_survive():
@@ -43,7 +42,10 @@ def test_signed_webhook_and_dtmf_keys():
     with pytest.raises(PermissionError):
         tel.handle_webhook("twilio", "https://x/h", params, "bad")
     out = tel.handle_webhook("twilio", "https://x/h", params, p.sign("https://x/h", params))
-    assert got == ["1"] and out.intent == "book_machine"
+    assert got == ["1"] and out.transcript[-1] == "pressed 1"            # meaning (menu or confirm) is decided by Ops.handle_key
+    back = {"CallSid": rec.call_id, "Digits": "0"}                       # 0 = go back, allowed in the confirm step
+    tel.handle_webhook("twilio", "https://x/h", back, p.sign("https://x/h", back))
+    assert got == ["1", "0"]
     bad = {"CallSid": rec.call_id, "Digits": "7"}
     with pytest.raises(ValueError):
         tel.handle_webhook("twilio", "https://x/h", bad, p.sign("https://x/h", bad))
@@ -78,36 +80,14 @@ def test_bhashini_second_identical_script_served_from_cache(tmp_path):
     assert script_hash("a", "pa") != script_hash("a", "hi")
 
 
-def test_whatsapp_rejects_unapproved_templates_and_sends_approved():
-    reg = TemplateRegistry()
-    reg.approve("harvest_reminder", {"pa", "hi"})
-    seen = []
+def test_whatsapp_is_not_part_of_the_platform():
+    """WhatsApp was removed (farmers confirm on the keypad instead): no integration package and no feature flag."""
+    import importlib.util
 
-    def handler(req: httpx.Request) -> httpx.Response:
-        seen.append(req.content)
-        return httpx.Response(200, json={"messages": [{"id": "wamid.1"}]})
-    s = WhatsAppSender("123", "tok", reg, client=httpx.Client(transport=httpx.MockTransport(handler)), enabled=lambda: True)
-    with pytest.raises(TemplateNotApproved):
-        s.send_template("919814000000", "free_text_promo", "pa", [])
-    with pytest.raises(TemplateNotApproved):
-        s.send_template("919814000000", "harvest_reminder", "en", [])
-    assert s.send_template("919814000000", "harvest_reminder", "pa", ["Gurpreet"]) == "wamid.1" and len(seen) == 1
-
-
-def test_whatsapp_flag_off_means_no_send_and_no_network_call():
-    reg = TemplateRegistry()
-    reg.approve("harvest_reminder", {"pa"})
-    seen = []
-    client = httpx.Client(transport=httpx.MockTransport(lambda req: seen.append(req) or httpx.Response(200, json={"messages": [{"id": "x"}]})))
-    off = WhatsAppSender("123", "tok", reg, client=client)                       # default: OFF
-    with pytest.raises(WhatsAppDisabled):
-        off.send_template("919814000000", "harvest_reminder", "pa", ["Gurpreet"])
-    from domain.features import FeatureFlags
-    flags = FeatureFlags.load()
-    wired = WhatsAppSender("123", "tok", reg, client=client, enabled=lambda: flags.enabled("WHATSAPP_ENABLED"))
-    with pytest.raises(WhatsAppDisabled):
-        wired.send_template("919814000000", "harvest_reminder", "pa", ["Gurpreet"])
-    assert seen == []
+    from domain.features import FeatureFlags, UnknownFlag
+    assert importlib.util.find_spec("integrations.whatsapp") is None
+    with pytest.raises(UnknownFlag):
+        FeatureFlags.load().value("WHATSAPP_ENABLED")
 
 
 def test_concurrent_booking_one_success_one_conflict():

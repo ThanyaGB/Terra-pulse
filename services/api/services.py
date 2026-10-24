@@ -6,7 +6,7 @@ from typing import Any
 
 from agents.runtime import Platform
 from agents.world import Parcel
-from api.agronomist import AgronomistDesk
+from api.fpo_desk import FpoDesk
 from api.masking import clear
 from api.problem import ProblemError
 from domain.config import load_yaml
@@ -16,19 +16,25 @@ from integrations.ratelimit import RateLimitExceeded
 from integrations.telephony import CallRecord, OutsideCallingHours, TelephonyAdapter, calling_window, within_calling_hours
 
 
+MENU_KEYS = ("1", "2", "9")
+CONFIRM_KEY, BACK_KEY = "1", "0"
+INTENTS = {"1": "book_machine", "2": "collect_straw", "9": "talk_to_fpo"}
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
 class Ops:
     def __init__(self, platform: Platform, telephony: TelephonyAdapter, limiter: Any, features: FeatureFlags | None = None,
-                 desk: AgronomistDesk | None = None, audio: AudioService | None = None) -> None:
+                 desk: FpoDesk | None = None, audio: AudioService | None = None) -> None:
         self.p, self.tel, self.limiter = platform, telephony, limiter
         self.features = features or FeatureFlags.load()
-        self.desk = desk or AgronomistDesk(self.tel.clock)
+        self.desk = desk or FpoDesk(self.tel.clock)
         self.audio = audio
         self.calls: dict[str, dict[str, Any]] = {}
         self.by_parcel: dict[str, list[str]] = {}
+        self.pending: dict[str, str] = {}      # parcel_id -> menu choice (1, 2, 9) waiting for 1 = confirm or 0 = back
 
     # ---- helpers ----
     def parcel(self, parcel_id: str) -> Parcel:
@@ -73,6 +79,7 @@ class Ops:
                 "lang": lang, "transcript": [{"at": now_iso(), "speaker": "agent", "text": t} for t in script], "intent": None,
                 "keys": []}
         self.calls[rec.call_id] = call
+        self.reset_keypad(parcel_id)
         self.by_parcel.setdefault(parcel_id, []).append(rec.call_id)
         return {"call_id": rec.call_id, "status": "queued", "provider": rec.provider}
 
@@ -83,25 +90,46 @@ class Ops:
         return {**c, "farmer_phone": self.parcel(c["parcel_id"]).phone}   # masked by the response class
 
     # ---- keypad (IVR / simulator) ----
-    async def handle_key(self, parcel_id: str, key: str, via_call: str | None = None, actor: str = "ivr") -> dict[str, Any]:
+    async def handle_key(self, parcel_id: str, key: str, via_call: str | None = None, actor: str = "ivr", lang: str = "pa") -> dict[str, Any]:
+        """Two keypad steps (ADR-09). Step 1, the menu: 1 machine, 2 straw pickup, 9 talk to an FPO worker. Nothing happens yet;
+        the farmer hears what they chose. Step 2: 1 confirms and only then is the booking, pickup or FPO request made; 0 goes back."""
+        from agents.advisory_agent import keypad_prompt
         self.parcel(parcel_id)   # 404 for an unknown parcel
-        if key not in ("1", "2", "9"):
-            raise ProblemError(400, "Unknown key", "Press 1, 2 or 9.")
-        self.audit(actor, "call.keypress", {"parcel_id": parcel_id, "key": key})
         call = self.calls.get(via_call) if via_call else None
         if call is not None:
+            lang = call.get("lang", lang)
+        choice = self.pending.get(parcel_id)
+        if choice is None and key not in MENU_KEYS:
+            raise ProblemError(400, "Unknown key", "Press 1, 2 or 9.")
+        if choice is not None and key not in (CONFIRM_KEY, BACK_KEY):
+            raise ProblemError(400, "Unknown key", "Press 1 to confirm or 0 to go back.")
+        self.audit(actor, "call.keypress", {"parcel_id": parcel_id, "key": key, "step": "menu" if choice is None else "confirm"})
+        if call is not None:
             call["keys"].append(key)
-            call["intent"] = {"1": "book_machine", "2": "collect_straw", "9": "agronomist"}[key]
-        if key == "1":
+        if choice is None:                                     # step 1: remember the choice and ask for confirmation
+            self.pending[parcel_id] = key
+            if call is not None:
+                call["intent"] = INTENTS[key]
+            return {"key": key, "status": "awaiting_confirmation", "prompt": f"confirm_{key}", "prompt_text": keypad_prompt(lang, key)}
+        del self.pending[parcel_id]
+        if key == BACK_KEY:                                    # step 2: 0 goes back to the menu, nothing was booked
+            if call is not None:
+                call["intent"] = None
+            return {"key": choice, "status": "cancelled", "prompt": "back_to_menu", "prompt_text": keypad_prompt(lang)}
+        if choice == "1":
             booking = await self.create_booking(parcel_id, None, actor)
             booking = self.confirm_booking(booking["booking_id"], actor)
-            return {"key": key, "status": "confirmed", "reference_id": booking["booking_id"], "booking": booking}
-        if key == "2":
+            return {"key": choice, "status": "confirmed", "reference_id": booking["booking_id"], "booking": booking}
+        if choice == "2":
             col = self.request_collection(parcel_id, actor)
-            return {"key": key, "status": "confirmed", "reference_id": col["request_id"], "collection": col}
-        res = self.desk.request(parcel_id)          # ADR-22: staffed queue in pilot hours, else a callback slot
-        self.audit(actor, "agronomist.requested", {"parcel_id": parcel_id, **res})
-        return {"key": key, **res}
+            return {"key": choice, "status": "confirmed", "reference_id": col["request_id"], "collection": col}
+        res = self.desk.request(parcel_id)          # ADR-22: FPO worker queue in pilot hours, else a callback slot
+        self.audit(actor, "fpo_desk.requested", {"parcel_id": parcel_id, **res})
+        return {"key": choice, **res}
+
+    def reset_keypad(self, parcel_id: str) -> None:
+        """A new call starts at the menu, even if the last one hung up between the two steps."""
+        self.pending.pop(parcel_id, None)
 
     # ---- bookings ----
     async def create_booking(self, parcel_id: str, machinery_id: str | None, actor: str, machine_type: str | None = None) -> dict[str, Any]:

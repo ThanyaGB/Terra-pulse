@@ -6,7 +6,7 @@ import { prefersReducedMotion } from '@/hooks/useReducedMotion';
 import { tweenNumber } from '@/design-system/motion';
 import { createAmbient, type Ambient } from './film/ambient';
 import { SPR, STAGES, STAGE_P, buildSprites, buildTitle, dayAt, drawScene, fitView, makeView, mix, phaseOf, ramp, setSprites, type View } from './film/scene';
-import { acts, arrows, caps, city, facts, fires, gaps, inventory, loop, nodes, plumes, s0, s1, s2, s3, s4, villages, waLink } from './content';
+import { acts, arrows, caps, city, facts, fires, gaps, inventory, loop, nodes, plumes, s0, s1, s2, s3, s4, villages } from './content';
 
 const fmt = (n: number) => Math.round(n).toLocaleString('en-US');
 const pad3 = (n: number) => ('00' + n).slice(-3);
@@ -662,7 +662,7 @@ export default function Landing() {
           <h2 className="lp-pop" style={{ margin: '0 0 16px', fontSize: 'clamp(40px, 5.6vw, 72px)', lineHeight: '1.02', maxWidth: '1000px', color: '#0B1D33' }}>
             {s4.map((w, _i) => (<Fragment key={_i}><span className="lp-word" style={{ animationDelay: `${w.d}ms` }}>{w.t}</span></Fragment>))}
           </h2>
-          <p className="lp-reveal" style={{ margin: '0 0 48px', fontSize: '18px', maxWidth: '620px', color: '#0F2A47' }}>The nearest machine is matched, the farmer confirms on WhatsApp, the straw goes to a Bio-CNG plant instead of the sky — and the city's air card turns green again.</p>
+          <p className="lp-reveal" style={{ margin: '0 0 48px', fontSize: '18px', maxWidth: '620px', color: '#0F2A47' }}>The nearest machine is matched, the farmer confirms with a keypress on a basic phone, the straw goes to a Bio-CNG plant instead of the sky — and the city's air card turns green again.</p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
             <div className="lp-reveal" style={{ flex: '999 1 640px', minWidth: '0', position: 'relative', borderRadius: '28px', overflow: 'hidden', minHeight: '420px', background: 'linear-gradient(180deg, #2F86D6, #DFF3FF 40%, #0E5E40 41%)', boxShadow: '0 30px 80px rgba(15,42,71,.2)' }}>
@@ -699,11 +699,11 @@ export default function Landing() {
                     <div style={{ fontSize: '13px', color: '#3B526B' }}>Nearest free unit · <span className="lp-mono">2.4 km</span> · <span className="lp-mono">₹750</span>/acre (demo rate)</div>
                   </div>
                 </div>
-                <a className="lp-btn lp-btn-g" href={waLink} target="_blank" rel="noopener" style={{ width: '100%', justifyContent: 'center' }} aria-label="Book the Super Seeder via WhatsApp, opens in a new tab">
-                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 A6.5 6.5 0 0 0 2.4 11.3 L1.5 14.5 L4.8 13.6 A6.5 6.5 0 1 0 8 1.5 Z" fill="none" stroke="#fff" strokeWidth="1.4"></path></svg>
-                  One-tap booking via WhatsApp
-                </a>
-                <p style={{ margin: '8px 0 0', fontSize: '11px', color: '#4A6380' }}>Opens wa.me with a placeholder demo number (+91 00000 00000).</p>
+                <Link className="lp-btn lp-btn-g" to="/farmer" style={{ width: '100%', justifyContent: 'center' }} aria-label="Book the Super Seeder by phone keypad: open the farmer call">
+                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><g fill="#fff"><circle cx="4" cy="3" r="1.4"></circle><circle cx="8" cy="3" r="1.4"></circle><circle cx="12" cy="3" r="1.4"></circle><circle cx="4" cy="7" r="1.4"></circle><circle cx="8" cy="7" r="1.4"></circle><circle cx="12" cy="7" r="1.4"></circle><circle cx="4" cy="11" r="1.4"></circle><circle cx="8" cy="11" r="1.4"></circle><circle cx="12" cy="11" r="1.4"></circle><circle cx="8" cy="15" r="1"></circle></g></svg>
+                  Book by phone keypad
+                </Link>
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#4A6380' }}>On the call the farmer presses 1, then 1 again to confirm. Works on any basic phone: no app, no internet.</p>
               </div>
               <div className="lp-card lp-glass lp-reveal" style={{ padding: '24px', background: 'rgba(255,255,255,.85)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '8px' }}>

@@ -18,7 +18,7 @@ import httpx
 
 from domain.config import load_yaml
 
-DTMF_KEYS = ("1", "2", "9")
+DTMF_KEYS = ("0", "1", "2", "9")          # menu 1/2/9, then 1 = confirm, 0 = back (ADR-09)
 _CFG = load_yaml("telephony.yaml")
 FAILURES_BEFORE_FAILOVER = int(_CFG["health_check"]["failures_before_failover"])
 HEALTH_INTERVAL_S = int(_CFG["health_check"]["interval_s"])
@@ -187,7 +187,8 @@ class TelephonyAdapter:
         return rec
 
     def handle_webhook(self, provider: str, url: str, params: dict[str, str], signature: str) -> CallRecord:
-        """Signed webhook for call status and DTMF (1, 2, 9). Unsigned or tampered requests are rejected."""
+        """Signed webhook for call status and DTMF (0, 1, 2, 9). Unsigned or tampered requests are rejected. The digit is passed
+        on as is: what it means (menu choice or confirm/back) depends on the call's keypad step, which `Ops.handle_key` tracks."""
         if not self.providers[provider].verify_webhook(url, params, signature):
             raise PermissionError("invalid webhook signature")
         rec = self.calls[params["CallSid"]]
@@ -198,6 +199,5 @@ class TelephonyAdapter:
             if digit not in DTMF_KEYS:
                 raise ValueError(f"unsupported DTMF {digit!r}")
             rec.transcript.append(f"pressed {digit}")
-            rec.intent = {"1": "book_machine", "2": "collect_straw", "9": "agronomist"}[digit]
             self.on_dtmf(rec, digit)
         return rec

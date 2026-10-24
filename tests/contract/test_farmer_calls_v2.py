@@ -1,5 +1,5 @@
 """T2.5 / T4.1 / T4.2 / ADR-13, 17, 22 through the API: calls are gated by flag and hours, the buy-back line needs an active
-contract, keypad 9 routes to a queue or a callback slot."""
+contract, keypad 9 (then 1 to confirm) routes to an FPO worker queue or a callback slot."""
 from datetime import datetime, timezone
 
 from conftest import ACTIVE_CONTRACT, SETTINGS
@@ -84,7 +84,19 @@ def test_booking_and_collection_carry_rates_only_from_a_contract(client, H):
     assert client.get("/v1/collections/summary", headers=H("fpo_coordinator")).json()["floor_price_inr_per_tonne"] == 1650
 
 
-def test_keypad_nine_is_recorded_without_promising_a_time_when_unstaffed(client, H):
-    r = client.post("/v1/calls/keypress", json={"parcel_id": _pid(client), "key": "9"}, headers=H("farmer")).json()
-    assert r["status"] == "callback_unscheduled" and r["slot"] is None and r["reference_id"].startswith("AG-C-")
-    assert any(e.action == "agronomist.requested" for e in client.platform.audit.entries())
+def test_keypad_nine_reaches_an_fpo_worker_without_promising_a_time_when_unstaffed(client, H):
+    pid = _pid(client)
+    first = client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "9"}, headers=H("farmer")).json()
+    assert first["status"] == "awaiting_confirmation" and not any(e.action == "fpo_desk.requested" for e in client.platform.audit.entries())
+    r = client.post("/v1/calls/keypress", json={"parcel_id": pid, "key": "1"}, headers=H("farmer")).json()
+    assert r["status"] == "callback_unscheduled" and r["slot"] is None and r["reference_id"].startswith("FPO-C-")
+    assert any(e.action == "fpo_desk.requested" for e in client.platform.audit.entries())
+
+
+def test_script_offers_an_fpo_worker_on_nine_in_every_language(client, H):
+    pid = _pid(client)
+    want = {"en": "talk to an FPO worker", "hi": "FPO कर्मचारी", "pa": "FPO ਕਰਮਚਾਰੀ"}
+    for lang, marker in want.items():
+        lines = client.get(f"/v1/calls/session?lang={lang}&parcel_id={pid}", headers=H("farmer")).json()["lines"]
+        assert marker in lines[-1], lang
+        assert not any("agronomist" in ln.lower() for ln in lines)
