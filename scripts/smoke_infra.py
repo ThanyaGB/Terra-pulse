@@ -12,8 +12,12 @@ def check_postgres() -> str:
     with psycopg.connect(url, connect_timeout=5) as c:
         c.execute("CREATE EXTENSION IF NOT EXISTS postgis")
         c.execute("CREATE EXTENSION IF NOT EXISTS timescaledb")
-        postgis = c.execute("SELECT postgis_version()").fetchone()[0]
-        ts = c.execute("SELECT extversion FROM pg_extension WHERE extname='timescaledb'").fetchone()[0]
+        row = c.execute("SELECT postgis_version()").fetchone()
+        assert row is not None, "postgis_version() returned no row"
+        postgis = row[0]
+        row = c.execute("SELECT extversion FROM pg_extension WHERE extname='timescaledb'").fetchone()
+        assert row is not None, "timescaledb extension is not installed"
+        ts = row[0]
     return f"postgis {postgis}, timescaledb {ts}"
 
 

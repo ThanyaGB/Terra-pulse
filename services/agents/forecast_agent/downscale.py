@@ -42,7 +42,7 @@ def load_model(path: str | None = None, enabled: bool = False) -> Downscaler | N
     try:
         import torch
 
-        model = torch.jit.load(path)  # type: ignore[no-untyped-call]
+        model = torch.jit.load(path)  # type: ignore[no-untyped-call, unused-ignore]
         model.eval()
 
         def run(points: Sequence[Point], targets: Sequence[tuple[float, float]]) -> list[float]:
