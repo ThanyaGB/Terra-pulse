@@ -22,14 +22,14 @@ def test_risk_extremes():
     assert risk.risk_score(HIGH).score == 100 and risk.risk_score(HIGH).tier == "critical"
 
 
-@pytest.mark.parametrize("score,tier", [(39.9, "low"), (40, "medium"), (69.9, "medium"), (70, "high"), (84.9, "high"), (85, "critical")])
+@pytest.mark.parametrize("score,tier", [(34.9, "low"), (35, "medium"), (59.9, "medium"), (60, "high"), (79.9, "high"), (80, "critical")])
 def test_tier_boundaries(score, tier):
     assert risk.tier_for(score, risk.load_weights()) == tier
 
 
 def test_risk_golden_fixture():
     r = risk.risk_score(risk.RiskInputs(-0.015, 7, 0.4, 0.2, 0.5))
-    assert r.score == 51.5 and r.tier == "medium"
+    assert r.score == 52.5 and r.tier == "medium"   # spec 6.1 priors: .30/.25/.20/.15/.10
 
 
 def test_activation_window_by_clock_injection():

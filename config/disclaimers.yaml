@@ -1,0 +1,12 @@
+# Required disclaimers (ADR-18). Wording is for legal review (gate G2) and can change without a code release.
+version: 1
+legal_review: pending
+disclaimers:
+  citizen_advice:
+    en: "This is environmental exposure guidance, not medical advice. If you feel unwell, speak to a doctor."
+    hi: "यह पर्यावरणीय जोखिम संबंधी मार्गदर्शन है, चिकित्सकीय सलाह नहीं। अस्वस्थ महसूस होने पर डॉक्टर से मिलें।"
+    pa: "ਇਹ ਵਾਤਾਵਰਣ ਸੰਬੰਧੀ ਜੋਖਮ ਦੀ ਜਾਣਕਾਰੀ ਹੈ, ਡਾਕਟਰੀ ਸਲਾਹ ਨਹੀਂ। ਬੇਚੈਨੀ ਹੋਵੇ ਤਾਂ ਡਾਕਟਰ ਨੂੰ ਮਿਲੋ।"
+  directive:
+    en: "This advisory is a recommendation to the responsible authorities. The decision to act rests with them."
+    hi: "यह परामर्श संबंधित प्राधिकारियों के लिए एक सिफ़ारिश है। कार्रवाई का निर्णय उन्हीं का है।"
+    pa: "ਇਹ ਸਲਾਹ ਸੰਬੰਧਿਤ ਅਧਿਕਾਰੀਆਂ ਲਈ ਇੱਕ ਸਿਫ਼ਾਰਸ਼ ਹੈ। ਕਾਰਵਾਈ ਦਾ ਫ਼ੈਸਲਾ ਉਨ੍ਹਾਂ ਦਾ ਹੈ।"

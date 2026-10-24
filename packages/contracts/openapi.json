@@ -169,6 +169,26 @@
         "title": "DirectiveCreate",
         "type": "object"
       },
+      "FlagUpdate": {
+        "properties": {
+          "value": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "string"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "FlagUpdate",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -291,6 +311,83 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/admin/features": {
+      "get": {
+        "operationId": "features_list_v1_admin_features_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Features List V1 Admin Features Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Current feature flags",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/features/{name}": {
+      "put": {
+        "operationId": "features_put_v1_admin_features__name__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlagUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Features Put V1 Admin Features  Name  Put",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change a flag (audited; two-person for externally facing flags)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/aqi/communities": {
       "get": {
         "operationId": "communities_v1_aqi_communities_get",
@@ -1064,6 +1161,29 @@
         "summary": "Weighbridge receipt (webhook from the partner)",
         "tags": [
           "bookings"
+        ]
+      }
+    },
+    "/v1/config/public": {
+      "get": {
+        "operationId": "public_config_v1_config_public_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Public Config V1 Config Public Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Flags, disclaimers and attribution a client needs (extension)",
+        "tags": [
+          "config"
         ]
       }
     },

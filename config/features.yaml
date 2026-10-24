@@ -1,0 +1,35 @@
+# Feature flags (spec section 3, T0.4). Changed only by admins, and every change is audited.
+# Flags marked externally_facing need a second admin to confirm the same change (two-person approval).
+# Defaults here must match spec section 3; tests/unit/test_features.py checks them against the spec table.
+version: 1
+flags:
+  TELEPHONY_ENABLED:
+    default: false
+    externally_facing: true      # gate G1
+    description: Outbound farmer calls
+  TTS_PROVIDER:
+    default: prerecorded
+    options: [prerecorded, bhashini]
+    externally_facing: false
+    description: Audio source for farmer calls
+  WHATSAPP_ENABLED:
+    default: false
+    externally_facing: true      # gate G1
+    description: WhatsApp template messages
+  PUBLIC_ALERTS_ENABLED:
+    default: false
+    externally_facing: true      # gate G2
+    description: Citizen PWA push alerts
+  ADVISORY_EXPORT_ENABLED:
+    default: true
+    externally_facing: false
+    description: PDF export of approved diversion advisories for internal use
+  CALIBRATION_MODE:
+    default: false
+    externally_facing: false
+    description: Read-only analysis mode for offline calibration
+  # Not in spec section 3: keeps the deferred GNN downscaler (ADR-16) switched off. Do not turn on in the pilot.
+  FORECAST_GNN_ENABLED:
+    default: false
+    externally_facing: false
+    description: Post-pilot GNN downscaler code path

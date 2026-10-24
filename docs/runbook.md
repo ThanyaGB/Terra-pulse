@@ -24,7 +24,7 @@ Commands assume the staging namespace `vayu`. Replace with the production contex
 
 ## 2. GRAP escalation
 
-The tier mapping is data, not code: `packages/domain/config/grap_v1.yaml` (versioned). Tiers from AQI: stage 1 above 200, stage 2 above 300, stage 3 above 400, stage 4 above 450.
+The tier mapping is data, not code: `config/grap_tiers.yaml` (versioned). Tiers from AQI: stage 1 above 200, stage 2 above 300, stage 3 above 400, stage 4 above 450.
 
 | Tier | Automatic | Needs a human |
 | --- | --- | --- |

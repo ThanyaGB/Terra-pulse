@@ -21,7 +21,7 @@ class GrapResult:
 
 
 def grap_tier(aqi: float, shares: Mapping[str, float] | None = None, cfg: dict[str, Any] | None = None) -> GrapResult:
-    cfg = cfg or load_yaml("grap_v1.yaml")
+    cfg = cfg or load_yaml("grap_tiers.yaml")
     chosen = max((t for t in cfg["tiers"] if aqi >= t["min_aqi"]), key=lambda t: t["min_aqi"])
     actions = [GrapAction(a["type"], a["approval"]) for a in chosen["actions"]]
     if chosen["id"] != "none" and shares:
@@ -34,5 +34,5 @@ def grap_tier(aqi: float, shares: Mapping[str, float] | None = None, cfg: dict[s
 
 
 def requires_two_person(action_type: str, cfg: dict[str, Any] | None = None) -> bool:
-    cfg = cfg or load_yaml("grap_v1.yaml")
+    cfg = cfg or load_yaml("grap_tiers.yaml")
     return any(a["type"] == action_type and a["approval"] == "two_person" for t in cfg["tiers"] for a in t["actions"])

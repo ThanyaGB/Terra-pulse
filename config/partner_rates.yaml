@@ -1,0 +1,14 @@
+# Partner contracts and the rates they carry (ADR-17). Farmer-facing rates are rendered ONLY from a contract whose
+# status is `active`. `unconfirmed` rows are placeholders from the planning figures in spec section 1 and are treated
+# as absent by the code (gate G3). Activating a contract is an audited config change, not a code change.
+version: 1
+contracts:
+  - contract_id: PC-0007
+    partner: Bio-CNG plant, Sangrur
+    area_id: sangrur
+    status: unconfirmed          # active | unconfirmed | expired
+    valid_from: null
+    valid_to: null
+    rates:
+      straw_floor_inr_per_tonne: 1650
+      super_seeder_rental_inr_per_acre: 750

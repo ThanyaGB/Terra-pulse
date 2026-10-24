@@ -31,7 +31,8 @@ class Settings(BaseSettings):
     data_gov_in_key: str | None = None
     cors_origins: str = "http://localhost:5173,http://localhost:5174,http://localhost:4173"
 
-    telephony_primary: Literal["twilio", "exotel"] = "twilio"
+    feature_overrides_path: str | None = "var/feature_overrides.json"   # persists admin flag changes; defaults come from config/features.yaml
+    telephony_primary: Literal["twilio", "exotel"] = "exotel"   # ADR-13
     call_rate_limit: int = 2
     call_rate_window_s: int = 24 * 3600
 

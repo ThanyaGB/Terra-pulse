@@ -1,0 +1,20 @@
+# Stubble fire risk, Phase 1 weighted score (spec 6.1). Priors, not fitted values: the offline calibration script
+# (CALIBRATION_MODE) may propose new weights in a report, but a human changes this file. Weights must sum to 1.
+version: 2
+weights:
+  sowing_window_days_remaining: 0.30
+  ndvi_decay_slope: 0.25
+  local_machinery_shortfall: 0.20
+  historical_fire_density: 0.15
+  soil_moisture_index: 0.10
+normalisation:
+  ndvi_slope_full_scale: 0.03       # NDVI units/day of decline that counts as 1.0
+  sowing_window_max_days: 21        # window at/above this scores 0
+  fire_density_full_scale: 0.5      # fires per km2 per season that counts as 1.0
+tiers:            # lower bounds on the 0-100 score (spec 6.1: 0.35 / 0.60 / 0.80 on the 0-1 scale)
+  medium: 35
+  high: 60
+  critical: 80
+activation:
+  days_before_harvest_min: 7
+  days_before_harvest_max: 10

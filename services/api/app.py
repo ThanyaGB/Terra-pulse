@@ -16,12 +16,13 @@ from agents.runtime import Platform, build_platform
 from api import problem
 from api.masking import MaskedJSONResponse
 from api.problem import ProblemError
-from api.routers import ops, read
+from api.routers import admin, ops, read
 from api.security import decode_token
 from api.services import Ops
 from api.settings import Settings, get_settings
 from api.ws import Client, Hub
 from domain import aqi as aqi_domain
+from domain.features import FeatureFlags
 from ingestion.pipeline import Snapshot, build_snapshot
 from ingestion.rawstore import FileRawStore
 from integrations.ratelimit import MemoryLimiter, RedisLimiter
@@ -103,6 +104,7 @@ def create_app(settings: Settings | None = None, platform: Platform | None = Non
     app.state.hub = Hub()
     plat = platform or build_platform(provider=_provider(settings), outbox_path=settings.outbox_path if settings.outbox_path != ":memory:" else ":memory:")
     app.state.platform = plat
+    app.state.features = FeatureFlags.load(audit=plat.audit.append, overrides_path=settings.feature_overrides_path)
     providers = {"twilio": FakeProvider("twilio"), "exotel": FakeProvider("exotel")}   # real providers need credentials from the secret manager
     secondary = "exotel" if settings.telephony_primary == "twilio" else "twilio"
     tel = TelephonyAdapter(providers[settings.telephony_primary], providers[secondary], on_alert=lambda m: app.state.hub.publish("alert.fired", {"kind": "telephony", "message": m}))
@@ -125,6 +127,7 @@ def create_app(settings: Settings | None = None, platform: Platform | None = Non
     problem.install(app)
     app.include_router(read.router, prefix="/v1")
     app.include_router(ops.router, prefix="/v1")
+    app.include_router(admin.router, prefix="/v1")
 
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict[str, Any]:

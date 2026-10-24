@@ -11,6 +11,7 @@ WORKDIR /app
 COPY --from=build /install /usr/local
 COPY services ./services
 COPY packages ./packages
+COPY config ./config
 COPY tests/integration/fixtures ./tests/integration/fixtures
 COPY run_api.py ./
 RUN mkdir -p /app/var && chown -R vayu:vayu /app/var

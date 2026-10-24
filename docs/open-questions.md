@@ -5,7 +5,7 @@ These were **not assumed away**. Each one has a seam in the code and a default t
 | # | Question | Current handling |
 | --- | --- | --- |
 | 1 | Telephony primary: Twilio or Exotel? | Both implemented behind `TelephonyAdapter` (`integrations/telephony`). Dev runs two `FakeProvider`s; real ones need credentials. Primary is a setting |
-| 2 | Final form and weights of the risk score `f` | Weighted sum with weights, normalisers and tier cut-offs in `packages/domain/config/risk_weights.yaml`; nothing hard-coded. Tier cut-offs (40/70/85) match the FPO screen |
+| 2 | Final form and weights of the risk score `f` | Weighted sum with weights, normalisers and tier cut-offs in `config/risk_weights.yaml`; nothing hard-coded. Tier cut-offs (40/70/85) match the FPO screen |
 | 3 | Bhashini access tier and Malwai/Haryanvi coverage | Client and SHA-256 audio cache implemented; no key, so the simulator uses browser speech synthesis. Punjabi/Hindi copy is machine-drafted and needs native review |
 | 4 | Bio-CNG floor price and subsidy amounts | Rs 1,650/t and Rs 750/acre kept in `farmer_scripts_v1.yaml` as **pilot assumptions** to confirm before farmers see them |
 | 5 | Traffic authority interface | `TrafficAuthority` sender contract with log-before-send; the transport is a stub |
