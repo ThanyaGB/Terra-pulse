@@ -48,6 +48,26 @@ docs/                   adr/ (12), runbook.md, open-questions.md
 
 `docs/legacy/backend-draft/` holds the earlier backend sketch that preceded the spec, kept for reference only.
 
+## Built with IBM Bob
+
+IBM Bob was the primary AI assistant used across the entire project lifecycle. Full details in [`docs/ibm_bob_usage.md`](docs/ibm_bob_usage.md).
+
+**Plan Mode — spec first.** Before writing any code, the team used Bob's Plan Mode to design the full system: 12 Architecture Decision Records, all domain logic invariants, the API contract, event schemas, and a 62-task ordered implementation plan. The output became [`vayu-swachh-spec.md`](vayu-swachh-spec.md) — the single source of truth for everything that followed.
+
+**Agent Mode — implementation.** Bob translated the spec into working code phase by phase across all 7 phases:
+
+| Phase | What Bob built |
+| --- | --- |
+| 0 Foundations | Monorepo, Python + Node toolchains, pre-commit hooks, Makefile, Docker Compose |
+| 1 Data & schema | Domain logic library (5 functions + Hypothesis property tests), 6 real-data ingestion connectors with offline fixtures, Alembic migrations, OpenAPI + event contract |
+| 2 Agents | Common runtime (bus, idempotency, outbox, tracing, health) + all 6 agent workers on Redis Streams |
+| 3 API | All 18 REST endpoints + `/ws/live` WebSocket, RBAC 403 matrix, phone masking, audit log, EXIF stripping |
+| 4 Integrations | Telephony failover, Bhashini audio cache, WhatsApp template guard, CRM optimistic locking, rate limits |
+| 5 Front end | All 4 interfaces with mock layer, generated TypeScript client, PWA service worker, i18n (en/pa/hi) |
+| 6 Testing & ops | Playwright E2E, k6 load tests, Dockerfiles, Kubernetes manifests, Terraform, GitHub Actions CI/CD, runbook |
+
+**Key Bob features used:** long-context spec retention across 730 lines, multi-file coherent edits, test-first discipline, live todo tracking, and consistent enforcement of every ADR across the codebase — across Python, TypeScript, SQL, YAML, HCL, and k6 JavaScript — without repeated reminders.
+
 ## Checks
 
 ```bash
