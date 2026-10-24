@@ -1,13 +1,16 @@
-"""1 km downscaling (T2.4). A trained GNN artifact would be loaded from the artifact store (open question 7).
-Until one is supplied the inference wrapper falls back to inverse-distance-weighted (bilinear-style) interpolation
-of the coarse model/station points onto the 1 km grid."""
+"""1 km downscaling (T2.4, ADR-16). Default: kriging with external drift on OpenStreetMap covariates. Fallback: inverse-
+distance-weighted (bilinear-style) interpolation. The GNN path is post-pilot: it is kept but only reachable when the
+FORECAST_GNN_ENABLED flag (default OFF) is on and an artifact exists. Methods reported: 'ked', 'idw-fallback', 'gnn'."""
 from __future__ import annotations
 
 import logging
 import os
 from typing import Callable, Sequence
 
+from domain.config import load_yaml
 from ingestion.geo import haversine_km
+
+from .kriging import KrigingError, ked
 
 log = logging.getLogger("downscale")
 Point = tuple[float, float, float]   # lat, lon, value
@@ -29,8 +32,10 @@ def idw(points: Sequence[Point], targets: Sequence[tuple[float, float]], k: int 
     return out
 
 
-def load_model(path: str | None = None) -> Downscaler | None:
-    """Return the GNN inference callable, or None if the artifact is missing or cannot be loaded."""
+def load_model(path: str | None = None, enabled: bool = False) -> Downscaler | None:
+    """Return the GNN inference callable, or None when the flag is off, the artifact is missing, or it cannot be loaded."""
+    if not enabled:
+        return None
     path = path or os.environ.get("VAYU_GNN_ARTIFACT")
     if not path or not os.path.exists(path):
         return None
@@ -50,11 +55,21 @@ def load_model(path: str | None = None) -> Downscaler | None:
         return None
 
 
-def downscale(points: Sequence[Point], targets: Sequence[tuple[float, float]], model: Downscaler | None = None) -> tuple[list[float], str]:
-    """Returns (values, method) where method is 'gnn' or 'idw-fallback'."""
+Drift = tuple[Sequence[Sequence[float]], Sequence[Sequence[float]]]   # covariates at the points, covariates at the targets
+
+
+def downscale(points: Sequence[Point], targets: Sequence[tuple[float, float]], model: Downscaler | None = None,
+              drift: Drift | None = None) -> tuple[list[float], str]:
+    """Returns (values, method) where method is 'gnn', 'ked' or 'idw-fallback'."""
     if model is not None:
         try:
             return model(points, targets), "gnn"
         except Exception:  # noqa: BLE001
-            log.exception("GNN inference failed; falling back to interpolation")
-    return idw(points, targets), "idw-fallback"
+            log.exception("GNN inference failed; falling back")
+    if drift is not None:
+        try:
+            return ked(points, drift[0], targets, drift[1], load_yaml("forecast.yaml")["kriging"]), "ked"
+        except KrigingError as exc:
+            log.warning("kriging with external drift unavailable (%s); using interpolation fallback", exc)
+    cfg = load_yaml("forecast.yaml")["idw"]
+    return idw(points, targets, int(cfg["k"]), float(cfg["power"])), "idw-fallback"

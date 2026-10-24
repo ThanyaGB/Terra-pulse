@@ -1,0 +1,15 @@
+{
+  "provenance": "PLACEHOLDER: approximate values typed in by hand to exercise the kriging code path. They are NOT derived from an OpenStreetMap extract. Replace with the monthly OSM extract job output (T1.4) before any accuracy claim.",
+  "source": "osm",
+  "points": {
+    "anand-vihar":  {"lat": 28.6469, "lon": 77.3152, "road_density_km_per_km2": 17.0, "builtup_fraction": 0.85},
+    "patparganj":   {"lat": 28.6280, "lon": 77.2950, "road_density_km_per_km2": 15.0, "builtup_fraction": 0.80},
+    "narela":       {"lat": 28.8527, "lon": 77.0929, "road_density_km_per_km2": 8.0,  "builtup_fraction": 0.45},
+    "rohini":       {"lat": 28.7495, "lon": 77.0565, "road_density_km_per_km2": 13.0, "builtup_fraction": 0.75},
+    "punjabi-bagh": {"lat": 28.6742, "lon": 77.1310, "road_density_km_per_km2": 16.0, "builtup_fraction": 0.85},
+    "ito":          {"lat": 28.6289, "lon": 77.2410, "road_density_km_per_km2": 20.0, "builtup_fraction": 0.90},
+    "dwarka":       {"lat": 28.5921, "lon": 77.0460, "road_density_km_per_km2": 11.0, "builtup_fraction": 0.65},
+    "rk-puram":     {"lat": 28.5633, "lon": 77.1869, "road_density_km_per_km2": 12.0, "builtup_fraction": 0.60},
+    "okhla":        {"lat": 28.5355, "lon": 77.2750, "road_density_km_per_km2": 14.0, "builtup_fraction": 0.75}
+  }
+}

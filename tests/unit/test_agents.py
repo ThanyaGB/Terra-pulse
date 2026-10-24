@@ -114,7 +114,7 @@ async def test_forecast_uses_gnn_hook_and_falls_back(snap):
 async def test_grid_cells_and_source_concentrations(platform):
     await platform.run_cycle("W1")
     cells, method = grid_cells(platform.world, (77.2, 28.58, 77.4, 28.70))
-    assert cells and method == "idw-fallback" and all(sums_to_100(c["source_mix"]) for c in cells)
+    assert cells and method == "ked" and all(sums_to_100(c["source_mix"]) for c in cells)
     c = source_concentrations(100, 200, 80, 10, 900, 20, 3000)
     assert all(v >= 0 for v in c.values())
 

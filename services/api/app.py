@@ -102,9 +102,11 @@ def create_app(settings: Settings | None = None, platform: Platform | None = Non
                   description="Closed-loop air quality action platform. Contract-first: this schema is exported to packages/contracts/openapi.json.")
     app.state.settings = settings
     app.state.hub = Hub()
-    plat = platform or build_platform(provider=_provider(settings), outbox_path=settings.outbox_path if settings.outbox_path != ":memory:" else ":memory:")
+    features = FeatureFlags.load(audit=lambda a, b, c: plat.audit.append(a, b, c), overrides_path=settings.feature_overrides_path)
+    plat = platform or build_platform(provider=_provider(settings), outbox_path=settings.outbox_path if settings.outbox_path != ":memory:" else ":memory:",
+                                      gnn_enabled=features.enabled("FORECAST_GNN_ENABLED"))
     app.state.platform = plat
-    app.state.features = FeatureFlags.load(audit=plat.audit.append, overrides_path=settings.feature_overrides_path)
+    app.state.features = features
     providers = {"twilio": FakeProvider("twilio"), "exotel": FakeProvider("exotel")}   # real providers need credentials from the secret manager
     secondary = "exotel" if settings.telephony_primary == "twilio" else "twilio"
     tel = TelephonyAdapter(providers[settings.telephony_primary], providers[secondary], on_alert=lambda m: app.state.hub.publish("alert.fired", {"kind": "telephony", "message": m}))

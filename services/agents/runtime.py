@@ -48,7 +48,7 @@ class Platform:
 
 def build_platform(provider: Callable[[], Snapshot] | None = None, bus: Bus | None = None, world: World | None = None,
                    audit: AuditLog | None = None, directives: DirectiveService | None = None, force_risk: bool = True,
-                   outbox_path: str = ":memory:") -> Platform:
+                   outbox_path: str = ":memory:", gnn_enabled: bool = False) -> Platform:
     bus = bus or InMemoryBus()
     world = world or World()
     audit = audit or AuditLog()
@@ -58,7 +58,7 @@ def build_platform(provider: Callable[[], Snapshot] | None = None, bus: Bus | No
         bus, world, audit, directives, outbox,
         ingestion=DataIngestionAgent(bus, world, provider, outbox=outbox),
         risk=StubbleRiskAgent(bus, world, force=force_risk, outbox=outbox),
-        forecast=ForecastAttributionAgent(bus, world, outbox=outbox),
+        forecast=ForecastAttributionAgent(bus, world, gnn_enabled=gnn_enabled, outbox=outbox),
         advisory=FarmerAdvisoryAgent(bus, world, outbox=outbox),
         health=HealthAdvisoryAgent(bus, world, outbox=outbox),
         municipal=MunicipalActionAgent(bus, world, directives, outbox=outbox),

@@ -15,6 +15,15 @@
         "aqi": {
           "type": "number"
         },
+        "cpcb_corrected": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "fallback_flag": {
+          "type": "boolean"
+        },
         "grid_id": {
           "type": "string"
         },

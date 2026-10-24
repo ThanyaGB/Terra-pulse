@@ -1,0 +1,26 @@
+# Forecast downscaling and CPCB correction (ADR-16, T2.4). Tunable values live here, not in code.
+version: 1
+kriging:
+  variogram: exponential
+  range_km: 40                 # correlation length of the PM2.5 field across Delhi
+  nugget_fraction: 0.1         # of the sample variance
+  min_points: 4                # fewer observations than this: fall back to inverse-distance weighting
+  drift_covariates: [road_density_km_per_km2, builtup_fraction]    # from the OpenStreetMap extract
+  max_ratio_to_max_obs: 2.0    # cap on a kriged value relative to the largest input
+idw:
+  k: 4
+  power: 2.0
+cpcb_correction:
+  min_ratio: 0.5               # corrected/forecast ratio is clamped to this range
+  max_ratio: 2.0
+  decay_hours: 24              # the correction fades over this horizon
+  station_aliases:             # CPCB station names (lower case, substring) -> area id
+    anand vihar: anand-vihar
+    patparganj: patparganj
+    narela: narela
+    rohini: rohini
+    punjabi bagh: punjabi-bagh
+    ito: ito
+    dwarka: dwarka
+    r k puram: rk-puram
+    okhla: okhla
