@@ -15,7 +15,6 @@ from integrations.audio import AudioService
 from integrations.ratelimit import RateLimitExceeded
 from integrations.telephony import CallRecord, OutsideCallingHours, TelephonyAdapter, calling_window, within_calling_hours
 
-
 MENU_KEYS = ("1", "2", "9")
 CONFIRM_KEY, BACK_KEY = "1", "0"
 INTENTS = {"1": "book_machine", "2": "collect_straw", "9": "talk_to_fpo"}

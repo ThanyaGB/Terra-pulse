@@ -179,16 +179,16 @@ export function makeFarmers(now = Date.now()): Farmer[] {
 
 export const OPERATORS: Record<MachineType, { operatorName: string; phone: string; base: string }[]> = {
   baler: [
-    { operatorName: 'Jagtar Singh', phone: '9872112345', base: 'Bhawanigarh CHC' },
-    { operatorName: 'Ranjit Singh', phone: '9815534120', base: 'Sunam CHC' },
+    { operatorName: 'Jagtar Singh', phone: '9872112345', base: 'Bhawanigarh CHC' }, // dummy demo number
+    { operatorName: 'Ranjit Singh', phone: '9815534120', base: 'Sunam CHC' }, // dummy demo number
   ],
   super_seeder: [
-    { operatorName: 'Baldev Singh', phone: '9872198760', base: 'Dhuri CHC' },
-    { operatorName: 'Gurnam Singh', phone: '9988123456', base: 'Lehragaga CHC' },
+    { operatorName: 'Baldev Singh', phone: '9872198760', base: 'Dhuri CHC' }, // dummy demo number
+    { operatorName: 'Gurnam Singh', phone: '9988123456', base: 'Lehragaga CHC' }, // dummy demo number
   ],
   happy_seeder: [
-    { operatorName: 'Sewak Singh', phone: '9876054321', base: 'Dirba CHC' },
-    { operatorName: 'Amrik Singh', phone: '9814067890', base: 'Moonak CHC' },
+    { operatorName: 'Sewak Singh', phone: '9876054321', base: 'Dirba CHC' }, // dummy demo number
+    { operatorName: 'Amrik Singh', phone: '9814067890', base: 'Moonak CHC' }, // dummy demo number
   ],
 };
 
