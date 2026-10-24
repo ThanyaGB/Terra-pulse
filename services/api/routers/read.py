@@ -223,7 +223,7 @@ def roi_summary(request: Request, _: Principal = Depends(require_roles("policy_o
             "compliance": {"strawCollectedTonnes": round(sum(e.tonnes for e in ledger), 1), "strawTargetTonnes": STRAW_TARGET_TONNES,
                            "chc": {"utilisationPct": round(100 * sum(1 for m in ms if m.status == "in_use") / max(1, len(ms))),
                                    "machinesInUse": sum(1 for m in ms if m.status == "in_use"), "machinesTotal": len(ms)},
-                           "fogCannons": {"inTransit": sum(1 for x in fog if x["status"] == "dispatched"), "deployed": sum(1 for x in fog if x["status"] == "completed"),
+                           "fogCannons": {"inTransit": sum(1 for x in fog if x["status"] in ("created", "accepted")), "deployed": sum(1 for x in fog if x["status"] == "completed"),
                                           "planned": len(fog)},
                            "monitoredStreets": streets, "note": "after = model projection 12 h ahead until measured ROI exists"},
             "work_orders": list(w.work_orders.values()), "sla_breached": sum(1 for x in w.work_orders.values() if x.get("sla_breached"))}

@@ -138,11 +138,11 @@ async def test_municipal_creates_work_orders_and_diversion_needs_second_approver
     await p.bus.drain()
     assert any(w["action_type"] == "fog_cannons" for w in p.world.work_orders.values())
     div = [d for d in p.directives.directives.values() if d["type"] == "diversion_trucks"]
-    assert div and div[0]["status"] == "pending_approval"           # cannot dispatch without a second approval
+    assert div and div[0]["status"] == "pending_approval"           # cannot be exported without a second approval
     with pytest.raises(ApprovalError):
         p.directives.approve(div[0]["id"], div[0]["createdBy"])
     p.directives.approve(div[0]["id"], "officer.b")
-    assert div[0]["status"] == "dispatched" and p.audit.verify()
+    assert div[0]["status"] == "approved" and p.audit.verify()
 
 
 async def test_roi_uses_control_station_and_window(snap):
@@ -168,5 +168,5 @@ def test_sla_sweep_flags_late_orders(snap):
     late_clock = lambda: datetime(2027, 1, 1, tzinfo=timezone.utc)  # noqa: E731
     p = build_platform(provider=lambda: snap, world=World(today=date(2026, 10, 23)))
     p.municipal.clock = late_clock
-    p.world.work_orders["WO-X"] = {"id": "WO-X", "status": "dispatched", "sla_due_at": "2026-10-23T12:00:00+00:00"}
+    p.world.work_orders["WO-X"] = {"id": "WO-X", "status": "created", "sla_due_at": "2026-10-23T12:00:00+00:00"}
     assert p.municipal.sla_sweep() == ["WO-X"] and RISK_UPDATED

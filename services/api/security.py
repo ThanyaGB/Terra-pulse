@@ -12,7 +12,7 @@ from fastapi import Depends, Request
 
 from api.problem import ProblemError
 
-ROLES = ("policy_officer", "fpo_coordinator", "farmer", "citizen", "admin")
+ROLES = ("policy_officer", "fpo_coordinator", "farmer", "citizen", "municipal_supervisor", "admin")
 
 
 def _b64(b: bytes) -> str:

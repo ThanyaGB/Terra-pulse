@@ -15,6 +15,7 @@ CHANNEL_ROLES: dict[str, set[str]] = {
     "alert.fired": {"citizen", "policy_officer", "fpo_coordinator", "admin"},
     "agent.status": {"policy_officer", "admin"},
     "booking.update": {"fpo_coordinator", "farmer"},
+    "work_order.update": {"municipal_supervisor", "policy_officer", "admin"},
 }
 
 

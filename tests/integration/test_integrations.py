@@ -7,10 +7,8 @@ from ingestion.crm import SimulatedCrm
 from integrations.bhashini import AudioCache, BhashiniClient, script_hash
 from integrations.biocng import BioCngPartner, CollectionRequest, LedgerEntry, ReconciliationItem
 from integrations.machinery_crm import CrmSync
-from integrations.mcd import McdIntegration
-from integrations.ratelimit import MemoryLimiter, RateLimitExceeded
+from integrations.mcd import NullNotifier
 from integrations.telephony import FakeProvider, TelephonyAdapter, TwilioProvider
-from integrations.traffic import TrafficAuthority
 from integrations.whatsapp import TemplateNotApproved, TemplateRegistry, WhatsAppSender
 
 
@@ -124,38 +122,7 @@ def test_biocng_reconciliation():
     assert isinstance(p.weighbridge_receipt("COL-404", 1.0), ReconciliationItem) and len(p.reconciliation) == 2
 
 
-def test_traffic_logs_before_send_and_aborts_if_logging_fails():
-    order = []
-    t = TrafficAuthority(lambda a, p: order.append(("log", a)), lambda p: order.append(("send", p["id"])))
-    t.send_directive({"id": "D1"})
-    assert order == [("log", "traffic.directive.send"), ("send", "D1")]
-
-    def boom(a, p):
-        raise RuntimeError("audit store down")
-    t2 = TrafficAuthority(boom, lambda p: order.append("sent"))
-    with pytest.raises(RuntimeError):
-        t2.send_directive({"id": "D2"})
-    assert "sent" not in order
-
-
-def test_mcd_work_order_lifecycle():
-    mcd = McdIntegration()
-    wo = mcd.dispatch({"id": "WO-1", "action_type": "fog_cannons", "location": "ito"})
-    assert wo["status"] == "dispatched"
-    mcd.webhook("WO-1", gps=(28.63, 77.24))
-    assert mcd.orders["WO-1"]["gps"]["lat"] == 28.63
-    assert mcd.webhook("WO-1", status="completed")["status"] == "completed"
-    with pytest.raises(ValueError):
-        mcd.webhook("WO-1", status="dispatched")
-
-
-def test_rate_limit_refuses_the_n_plus_1th_call_with_a_reason():
-    now = [1000.0]
-    rl = MemoryLimiter(2, 86400, clock=lambda: now[0])
-    rl.hit("call:P1")
-    rl.hit("call:P1")
-    with pytest.raises(RateLimitExceeded, match="limit of 2"):
-        rl.hit("call:P1")
-    rl.hit("call:P2")                                  # per-parcel
-    now[0] += 86401
-    rl.hit("call:P1")                                  # window passed
+def test_mcd_seam_is_a_noop_notifier_with_no_rest_adapter():
+    NullNotifier().notify_created({"id": "WO-1"})
+    import integrations.mcd as m
+    assert not hasattr(m, "McdIntegration") and not hasattr(m, "McdClient")

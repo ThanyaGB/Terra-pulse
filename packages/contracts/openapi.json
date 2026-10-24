@@ -52,6 +52,53 @@
         "title": "Body_reports_photo_v1_reports_photo_post",
         "type": "object"
       },
+      "Body_work_orders_complete_v1_work_orders__work_order_id__complete_post": {
+        "properties": {
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id"
+          },
+          "lat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lat"
+          },
+          "lon": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lon"
+          },
+          "photo": {
+            "contentMediaType": "application/octet-stream",
+            "title": "Photo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "photo"
+        ],
+        "title": "Body_work_orders_complete_v1_work_orders__work_order_id__complete_post",
+        "type": "object"
+      },
       "BookingCreate": {
         "properties": {
           "machine_type": {
@@ -120,6 +167,7 @@
               "fpo_coordinator",
               "farmer",
               "citizen",
+              "municipal_supervisor",
               "admin"
             ],
             "title": "Role",
@@ -1427,6 +1475,41 @@
         ]
       }
     },
+    "/v1/directives/{directive_id}/export": {
+      "get": {
+        "operationId": "directives_export_v1_directives__directive_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "directive_id",
+            "required": true,
+            "schema": {
+              "title": "Directive Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Signed PDF of an approved directive",
+        "tags": [
+          "directives"
+        ]
+      }
+    },
     "/v1/fpo/assign": {
       "post": {
         "operationId": "fpo_assign_v1_fpo_assign_post",
@@ -1916,6 +1999,197 @@
           }
         },
         "summary": "Clean commute options"
+      }
+    },
+    "/v1/work-orders": {
+      "get": {
+        "operationId": "work_orders_list_v1_work_orders_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "area",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Area"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Work Orders List V1 Work Orders Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List work orders",
+        "tags": [
+          "work-orders"
+        ]
+      }
+    },
+    "/v1/work-orders/{work_order_id}/accept": {
+      "post": {
+        "operationId": "work_orders_accept_v1_work_orders__work_order_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Work Orders Accept V1 Work Orders  Work Order Id  Accept Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accept a work order",
+        "tags": [
+          "work-orders"
+        ]
+      }
+    },
+    "/v1/work-orders/{work_order_id}/complete": {
+      "post": {
+        "operationId": "work_orders_complete_v1_work_orders__work_order_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "work_order_id",
+            "required": true,
+            "schema": {
+              "title": "Work Order Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_work_orders_complete_v1_work_orders__work_order_id__complete_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Work Orders Complete V1 Work Orders  Work Order Id  Complete Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Submit completion with photo and GPS",
+        "tags": [
+          "work-orders"
+        ]
       }
     }
   }

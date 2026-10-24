@@ -10,7 +10,7 @@ from PIL import Image
 from api.images import GPS_IFD, exif_keys
 from api.security import issue_token
 
-ROLES = ["policy_officer", "fpo_coordinator", "farmer", "citizen", "admin"]
+ROLES = ["policy_officer", "fpo_coordinator", "farmer", "citizen", "municipal_supervisor", "admin"]
 PHONE = re.compile(r"(?<!\d)[6-9]\d{4}[- ]?\d{5}(?!\d)")
 
 # (method, path, allowed roles) - every endpoint's declared role set is exercised
@@ -142,16 +142,16 @@ def test_directives_two_person_rule_and_audit_chain(client, H):
     self_ok = client.post(f"/v1/directives/{d['id']}/approve", headers=H("policy_officer", "officer.a"))
     assert self_ok.status_code == 409
     second = client.post(f"/v1/directives/{d['id']}/approve", headers=H("policy_officer", "officer.b"))
-    assert second.status_code == 200 and second.json()["status"] == "dispatched"
+    assert second.status_code == 200 and second.json()["status"] == "approved"
     f = client.post("/v1/directives", json={"type": "fog_cannons"}, headers=H("policy_officer")).json()
-    assert f["status"] == "dispatched"
+    assert f["status"] == "approved" and f["requiresSecondApprover"] is False
     assert client.post("/v1/directives", json={"type": "fog_cannons"}, headers=H("citizen")).status_code == 403
     audit = client.get("/v1/audit/verify", headers=H("admin")).json()
-    assert audit["valid"] and audit["entries"] >= 6
+    assert audit["valid"] and audit["entries"] >= 5
     log = client.platform.audit.entries()
     created = next(i for i, e in enumerate(log) if e.action == "directive.created" and e.payload["id"] == d["id"])
-    dispatched = next(i for i, e in enumerate(log) if e.action == "directive.dispatching" and e.payload["id"] == d["id"])
-    assert created < dispatched                                       # audited before dispatch
+    approved = next(i for i, e in enumerate(log) if e.action == "directive.approved" and e.payload["id"] == d["id"])
+    assert created < approved                                         # audited before it can be exported
 
 
 def test_audit_chain_detects_tampering(client):
@@ -184,7 +184,7 @@ def test_photo_report_strips_exif_except_coarse_gps(client, H):
     saved = open(f"{SETTINGS.photo_dir}/{ref}.jpg", "rb").read()
     assert exif_keys(saved) == {GPS_IFD}                                # only the GPS point survives
     assert b"SecretCamCo" not in saved
-    assert r.json()["grid_ref"].startswith("G+28.65")                   # coarse ~1 km grid reference
+    assert r.json()["grid_ref"].startswith("G+28.64")                   # 100 m grid cell, not the exact point
     got = client.get(f"/v1/reports/{ref}", headers=H("citizen")).json()
     assert got["reference_id"] == ref and "lat" not in got
     assert client.post("/v1/reports/photo", headers=H("citizen"), data={"category": "road_dust"}, files={"photo": ("x.jpg", b"not an image", "image/jpeg")}).status_code == 422
@@ -220,7 +220,7 @@ def test_dev_token_disabled_outside_dev(snap):
 
     from api.app import create_app
     from api.settings import Settings
-    s = Settings(env="staging", jwt_secret="x" * 32, data_mode="offline", outbox_path=":memory:")
+    s = Settings(env="staging", jwt_secret="x" * 32, signing_key="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=", data_mode="offline", outbox_path=":memory:")
     with TestClient(create_app(s, background=False)) as c:
         assert c.post("/v1/auth/dev-token", json={"role": "citizen"}).status_code == 404
 

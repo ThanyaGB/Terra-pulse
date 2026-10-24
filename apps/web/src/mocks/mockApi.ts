@@ -1,5 +1,5 @@
 import type {
-  AssignmentReceipt, BookingReceipt, BookingRequest, CallDetails, CallReceipt, DirectivePreview, DirectiveReceipt,
+  AssignmentReceipt, CompletionReceipt, CompletionRequest, WorkOrder, BookingReceipt, BookingRequest, CallDetails, CallReceipt, DirectivePreview, DirectiveReceipt,
   DirectiveType, Farmer, HealthProfile, Lang, MachineType, MachineryStatus, RealtimeEvent, ReportReceipt, ReportRequest,
   VayuApi,
 } from '@/api/contract';
@@ -7,7 +7,7 @@ import { ApiError } from '@/api/errors';
 import { buildAdvice } from './advice';
 import {
   AGENTS, BIOMASS, CITIZEN_AREAS, COMPLIANCE, MACHINERY, OPERATORS, PLUME, VILLAGES, attributionFor,
-  citizenSnapshot, healthItems, makeFarmers,
+  WORK_ORDERS, citizenSnapshot, healthItems, makeFarmers,
 } from './fixtures';
 import { scriptFor } from './script';
 
@@ -75,6 +75,8 @@ export function createMockApi(): VayuApi {
   const farmers: Farmer[] = makeFarmers();
   const callLogs = new Map<string, CallDetails['log']>();
   let reportCounter = 4200;
+  const orders = new Map<string, WorkOrder>(WORK_ORDERS.map((w) => [w.id, { ...w }]));
+  const completionByRequest = new Map<string, string>();   // clientRequestId -> work order id: a repeat sync must not complete twice
 
 
   const intentFor = (f: Farmer): CallDetails['intent'] => {
@@ -174,6 +176,28 @@ export function createMockApi(): VayuApi {
       if (!['open_burning', 'construction', 'road_dust'].includes(req.category)) throw new ApiError('Unknown category', 400);
       reportCounter += 1;
       return { referenceId: `VS-R-${reportCounter}`, receivedAt: new Date().toISOString() };
+    }),
+
+    listWorkOrders: () => gate(true, () => [...orders.values()].sort((a, b) => a.dueBy.localeCompare(b.dueBy)).map((w) => ({ ...w })), () => []),
+    acceptWorkOrder: (wid) => gate(false, (): WorkOrder => {
+      const w = orders.get(wid);
+      if (!w) throw new ApiError('Work order not found', 404);
+      if (w.status === 'accepted') return { ...w };
+      if (w.status !== 'created') throw new ApiError('A completed work order cannot be accepted', 409);
+      w.status = 'accepted';
+      w.acceptedAt = new Date().toISOString();
+      return { ...w };
+    }),
+    completeWorkOrder: (req: CompletionRequest) => gate(false, (): CompletionReceipt => {
+      const w = orders.get(req.workOrderId);
+      if (!w) throw new ApiError('Work order not found', 404);
+      if (completionByRequest.get(req.clientRequestId) === w.id) return { workOrder: { ...w }, duplicate: true };
+      if (w.status !== 'accepted') throw new ApiError('Accept the work order before completing it', 409);
+      if (!req.photoDataUrl || !Number.isFinite(req.lat) || !Number.isFinite(req.lng)) throw new ApiError('A photo and GPS position are required', 422);
+      w.status = 'completed';
+      w.completedAt = new Date().toISOString();
+      completionByRequest.set(req.clientRequestId, w.id);
+      return { workOrder: { ...w }, duplicate: false };
     }),
 
     getRealtimeSnapshot: async (): Promise<RealtimeEvent[]> => {

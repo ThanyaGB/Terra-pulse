@@ -30,6 +30,8 @@ PAYLOADS: dict[str, dict[str, Any]] = {
                        "properties": {"from": STR, "to": STR, "options": {"type": "array", "minItems": 1}}},
     "workorder.created": {"required": ["work_order_id", "action_type", "location"],
                           "properties": {"work_order_id": STR, "action_type": STR, "location": STR}},
+    "workorder.completed": {"required": ["work_order_id", "completed_at", "gps_cell"],
+                            "properties": {"work_order_id": STR, "completed_at": STR, "gps_cell": STR}},
     "roi.measured": {"required": ["work_order_id", "delta_pm25"], "properties": {"work_order_id": STR, "delta_pm25": NUM}},
 }
 

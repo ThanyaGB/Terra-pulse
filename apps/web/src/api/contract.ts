@@ -250,6 +250,36 @@ export interface ReportReceipt {
   receivedAt: string;
 }
 
+/* ---------- 5. Supervisor portal (/ops) ---------- */
+export type WorkOrderStatus = 'created' | 'accepted' | 'completed';
+/** GET /work-orders */
+export interface WorkOrder {
+  id: string;
+  areaId: string;
+  area: string;
+  actionType: 'fog_cannons' | 'road_sweeping' | 'dust_suppression';
+  status: WorkOrderStatus;
+  dueBy: string;
+  slaBreached: boolean;
+  acceptedAt: string | null;
+  completedAt: string | null;
+  /** measured 4-12 h after completion; null until then */
+  roi: { deltaPm25: number; controlArea: string | null } | null;
+}
+/** POST /work-orders/:id/complete. `clientRequestId` is made once per attempt, so a queued upload that syncs twice completes the order once. */
+export interface CompletionRequest {
+  workOrderId: string;
+  clientRequestId: string;
+  photoDataUrl: string;
+  lat: number;
+  lng: number;
+  capturedAt: string;
+}
+export interface CompletionReceipt {
+  workOrder: WorkOrder;
+  duplicate: boolean;
+}
+
 /* ---------- Realtime (WebSocket /ws/v1/stream, polling GET /realtime/snapshot) ---------- */
 export type RealtimeEvent =
   | { type: 'aqi'; areaId: string; areaName: string; aqi: number; pm25: number; ts: string }
@@ -280,6 +310,10 @@ export interface VayuApi {
   getAdvice(profile: HealthProfile, hour: number): Promise<AdviceResponse>;
   getRoutes(from: string, to: string): Promise<RoutesResponse>;
   submitReport(req: ReportRequest): Promise<ReportReceipt>;
+
+  listWorkOrders(): Promise<WorkOrder[]>;
+  acceptWorkOrder(id: string): Promise<WorkOrder>;
+  completeWorkOrder(req: CompletionRequest): Promise<CompletionReceipt>;
 
   getRealtimeSnapshot(): Promise<RealtimeEvent[]>;
 }

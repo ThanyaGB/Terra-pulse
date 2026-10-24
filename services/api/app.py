@@ -16,10 +16,12 @@ from agents.runtime import Platform, build_platform
 from api import problem
 from api.masking import MaskedJSONResponse
 from api.problem import ProblemError
-from api.routers import admin, ops, read
+from api.routers import admin, ops, read, workorders
 from api.security import decode_token
 from api.services import Ops
 from api.settings import Settings, get_settings
+from api.signing import Signer
+from api.workorders import WorkOrderService
 from api.ws import Client, Hub
 from domain import aqi as aqi_domain
 from domain.features import FeatureFlags
@@ -65,6 +67,7 @@ def _wire_hub(platform: Platform, hub: Hub) -> None:
             last_band[p["grid_id"]] = band
         elif ev.type == WORKORDER_CREATED:
             hub.publish("alert.fired", {"kind": "work_order", **p}, ev.trace_id)
+            hub.publish("work_order.update", {"id": p["work_order_id"], "status": "created", **p}, ev.trace_id)
         elif ev.type == BOOKING_CREATED:
             hub.publish("booking.update", p, ev.trace_id)
 
@@ -116,6 +119,9 @@ def create_app(settings: Settings | None = None, platform: Platform | None = Non
                                       gnn_enabled=features.enabled("FORECAST_GNN_ENABLED"))
     app.state.platform = plat
     app.state.features = features
+    if settings.signing_key:
+        plat.directives.signer = Signer(settings.signing_key)
+    app.state.workorders = WorkOrderService(plat, settings.photo_dir, on_update=lambda v: app.state.hub.publish("work_order.update", v))
     providers = _providers(settings)   # real providers need credentials from the secret manager
     secondary = "exotel" if settings.telephony_primary == "twilio" else "twilio"
     tel = TelephonyAdapter(providers[settings.telephony_primary], providers[secondary], on_alert=lambda m: app.state.hub.publish("alert.fired", {"kind": "telephony", "message": m}))
@@ -141,6 +147,7 @@ def create_app(settings: Settings | None = None, platform: Platform | None = Non
     app.include_router(read.router, prefix="/v1")
     app.include_router(ops.router, prefix="/v1")
     app.include_router(admin.router, prefix="/v1")
+    app.include_router(workorders.router, prefix="/v1")
 
     @app.get("/healthz", include_in_schema=False)
     def healthz() -> dict[str, Any]:

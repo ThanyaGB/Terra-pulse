@@ -1,5 +1,6 @@
-"""Municipal Action Agent (T2.7): GRAP tier mapping, work orders to MCD, diversion proposals needing a second approver
-(ADR-07), SLA tracking, and PM2.5 change 4-12 h after completion against a matched control station (spec 5.5).
+"""Municipal Action Agent (T2.7): GRAP tier mapping, work orders for the supervisor portal (ADR-15), diversion proposals
+needing a second approver (ADR-07), SLA tracking, and PM2.5 change 4-12 h after completion against a matched control station.
+Work-order lifecycle: created -> accepted -> completed (api/workorders.py performs the supervisor transitions).
 
 Note: the PM2.5 series available here is the CAMS model, not a physical station, so measured deltas show how the ROI
 pipeline works end to end; real ROI needs CAAQMS readings (open question 8)."""
@@ -10,13 +11,13 @@ from datetime import datetime, timedelta, timezone
 from typing import Any, Callable
 
 from agents.common import BaseAgent, Bus, Event
-from agents.common.events import ATTRIBUTION_UPDATED, ROI_MEASURED, WORKORDER_CREATED
+from agents.common.events import ATTRIBUTION_UPDATED, ROI_MEASURED, WORKORDER_COMPLETED, WORKORDER_CREATED
 from agents.world import World
 from api.directives import DirectiveService
 from domain import roi as roi_domain
 from domain.grap import grap_tier
 from ingestion.geo import AREAS, haversine_km
-from integrations.mcd import McdIntegration
+from integrations.mcd import NullNotifier, WorkOrderNotifier
 
 SLA_HOURS = 6
 SYSTEM_ACTOR = "municipal_agent"
@@ -43,17 +44,20 @@ def matched_control(area_id: str, candidates: list[str], world: World) -> str | 
 
 class MunicipalActionAgent(BaseAgent):
     name = "municipal_agent"
-    subscribes = (ATTRIBUTION_UPDATED,)
+    subscribes = (ATTRIBUTION_UPDATED, WORKORDER_COMPLETED)
 
-    def __init__(self, bus: Bus, world: World, directives: DirectiveService, mcd: McdIntegration | None = None,
+    def __init__(self, bus: Bus, world: World, directives: DirectiveService, notifier: WorkOrderNotifier | None = None,
                  clock: Callable[[], datetime] | None = None, **kw: Any) -> None:
         super().__init__(bus, **kw)
         self.world, self.directives = world, directives
-        self.mcd = mcd or McdIntegration()
+        self.notifier = notifier or NullNotifier()
         self.clock = clock or (lambda: datetime.now(timezone.utc))
         self._open: set[tuple[str, str]] = set()   # (area, action) with an open work order
 
     async def handle(self, event: Event) -> None:
+        if event.type == WORKORDER_COMPLETED:
+            self._on_completed(event)
+            return
         for area_id, f in self.world.forecast.items():
             shares = self.world.attribution.get(area_id, {}).get("shares")
             res = grap_tier(f["aqi"], shares)
@@ -76,15 +80,18 @@ class MunicipalActionAgent(BaseAgent):
                               "sla_due_at": (now + timedelta(hours=SLA_HOURS)).isoformat(timespec="seconds"), "sla_breached": False}
         self.world.work_orders[wid] = wo
         self._open.add((area_id, action))
-        self.mcd.dispatch({"id": wid, "action_type": action, "location": area_id})
-        wo["status"] = "dispatched"
+        self.world.work_order_events.append({"work_order_id": wid, "at": wo["created_at"], "actor": SYSTEM_ACTOR, "from_status": None, "to_status": "created", "detail": {}})
+        self.notifier.notify_created(wo)
         await self.emit(event.child(WORKORDER_CREATED, {"work_order_id": wid, "action_type": action, "location": area_id}))
 
-    def complete(self, work_order_id: str, when: datetime | None = None) -> None:
-        """Called from the MCD completion webhook."""
-        wo = self.world.work_orders[work_order_id]
-        self.mcd.webhook(work_order_id, status="completed")
-        wo["status"], wo["completed_at"] = "completed", (when or self.clock()).isoformat(timespec="seconds")
+    def _on_completed(self, event: Event) -> None:
+        """A supervisor completed an order: free the (area, action) slot and schedule ROI measurement 4-12 h later."""
+        wo = self.world.work_orders.get(event.payload["work_order_id"])
+        if wo is None:
+            return
+        done = datetime.fromisoformat(event.payload["completed_at"])
+        wo["roi_window"] = {"earliest": (done + timedelta(hours=roi_domain.MIN_H)).isoformat(timespec="seconds"),
+                            "latest": (done + timedelta(hours=roi_domain.MAX_H)).isoformat(timespec="seconds")}
         self._open.discard((wo["area_id"], wo["action_type"]))
 
     def sla_sweep(self) -> list[str]:

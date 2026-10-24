@@ -50,6 +50,9 @@ ALTER TABLE work_order DROP CONSTRAINT IF EXISTS work_order_status_check;
 ALTER TABLE work_order ADD CONSTRAINT work_order_status_check CHECK (status IN ('created','dispatched','accepted','completed'));
 ALTER TABLE work_order ADD COLUMN accepted_by TEXT, ADD COLUMN accepted_at TIMESTAMPTZ, ADD COLUMN completed_by TEXT,
     ADD COLUMN completion_grid_ref TEXT, ADD COLUMN completion_object_key TEXT;
+ALTER TABLE booking ALTER COLUMN rental_rate_inr_per_acre DROP NOT NULL, ADD COLUMN rate_source TEXT;          -- rates only from an active contract (ADR-17)
+ALTER TABLE collection_request ALTER COLUMN floor_price_inr DROP NOT NULL, ADD COLUMN rate_source TEXT;
+ALTER TABLE directive ADD COLUMN approved_at TIMESTAMPTZ;
 ALTER TABLE directive DROP CONSTRAINT IF EXISTS directive_status_check;
 ALTER TABLE directive ADD CONSTRAINT directive_status_check CHECK (status IN ('queued','pending_approval','approved','dispatched'));
 """
@@ -72,6 +75,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.execute("ALTER TABLE directive DROP COLUMN IF EXISTS approved_at")
+    op.execute("UPDATE collection_request SET floor_price_inr = 0 WHERE floor_price_inr IS NULL")
+    op.execute("ALTER TABLE collection_request ALTER COLUMN floor_price_inr SET NOT NULL, DROP COLUMN IF EXISTS rate_source")
+    op.execute("UPDATE booking SET rental_rate_inr_per_acre = 0 WHERE rental_rate_inr_per_acre IS NULL")
+    op.execute("ALTER TABLE booking ALTER COLUMN rental_rate_inr_per_acre SET NOT NULL, DROP COLUMN IF EXISTS rate_source")
     for name, _, _ in HYPERTABLES:
         op.execute(f"DROP TABLE IF EXISTS {name} CASCADE")
     op.execute("ALTER TABLE directive DROP CONSTRAINT IF EXISTS directive_status_check")

@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/v1/admin/features": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Current feature flags */
+        get: operations["features_list_v1_admin_features_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/features/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a flag (audited; two-person for externally facing flags) */
+        put: operations["features_put_v1_admin_features__name__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/aqi/communities": {
         parameters: {
             query?: never;
@@ -64,6 +98,23 @@ export interface paths {
         };
         /** Source attribution matrix */
         get: operations["attribution_summary_v1_attribution_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/audio/{key}.wav": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Call audio clip by script hash (extension) */
+        get: operations["audio_clip_v1_audio__key__wav_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -293,6 +344,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/config/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Flags, disclaimers and attribution a client needs (extension) */
+        get: operations["public_config_v1_config_public_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/directives": {
         parameters: {
             query?: never;
@@ -339,6 +407,23 @@ export interface paths {
         put?: never;
         /** Second approver */
         post: operations["directives_approve_v1_directives__directive_id__approve_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/directives/{directive_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Signed PDF of an approved directive */
+        get: operations["directives_export_v1_directives__directive_id__export_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -532,6 +617,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/work-orders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List work orders */
+        get: operations["work_orders_list_v1_work_orders_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/work-orders/{work_order_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept a work order */
+        post: operations["work_orders_accept_v1_work_orders__work_order_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/work-orders/{work_order_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Submit completion with photo and GPS */
+        post: operations["work_orders_complete_v1_work_orders__work_order_id__complete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -548,6 +684,17 @@ export interface components {
              * @enum {string}
              */
             category: "open_burning" | "construction" | "road_dust";
+            /** Lat */
+            lat?: number | null;
+            /** Lon */
+            lon?: number | null;
+            /** Photo */
+            photo: string;
+        };
+        /** Body_work_orders_complete_v1_work_orders__work_order_id__complete_post */
+        Body_work_orders_complete_v1_work_orders__work_order_id__complete_post: {
+            /** Client Request Id */
+            client_request_id?: string | null;
             /** Lat */
             lat?: number | null;
             /** Lon */
@@ -584,7 +731,7 @@ export interface components {
              * Role
              * @enum {string}
              */
-            role: "policy_officer" | "fpo_coordinator" | "farmer" | "citizen" | "admin";
+            role: "policy_officer" | "fpo_coordinator" | "farmer" | "citizen" | "municipal_supervisor" | "admin";
             /** Sub */
             sub?: string | null;
         };
@@ -600,6 +747,11 @@ export interface components {
              * @enum {string}
              */
             type: "grap_ii" | "diversion_trucks" | "fog_cannons";
+        };
+        /** FlagUpdate */
+        FlagUpdate: {
+            /** Value */
+            value: boolean | string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -654,6 +806,65 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    features_list_v1_admin_features_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    features_put_v1_admin_features__name__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     communities_v1_aqi_communities_get: {
         parameters: {
             query?: never;
@@ -769,6 +980,37 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    audio_clip_v1_audio__key__wav_get: {
+        parameters: {
+            query?: {
+                lang?: "pa" | "hi" | "en";
+            };
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -1205,6 +1447,28 @@ export interface operations {
             };
         };
     };
+    public_config_v1_config_public_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     directives_list_v1_directives_get: {
         parameters: {
             query?: {
@@ -1328,6 +1592,35 @@ export interface operations {
                         [key: string]: unknown;
                     };
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    directives_export_v1_directives__directive_id__export_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                directive_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -1648,6 +1941,112 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    work_orders_list_v1_work_orders_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                area?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    work_orders_accept_v1_work_orders__work_order_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    work_orders_complete_v1_work_orders__work_order_id__complete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                work_order_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_work_orders_complete_v1_work_orders__work_order_id__complete_post"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

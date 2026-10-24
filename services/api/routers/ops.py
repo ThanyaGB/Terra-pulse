@@ -8,7 +8,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, File, Form, Request, Response, UploadFile
 from pydantic import BaseModel, Field
 
-from api.directives import PREVIEWS, ApprovalError
+from api.directives import PREVIEWS, ApprovalError, ExportError
 from api.images import sanitise_photo
 from api.pagination import paginate
 from api.problem import ProblemError
@@ -53,7 +53,7 @@ class DirectiveCreate(BaseModel):
 
 
 class DevToken(BaseModel):
-    role: Literal["policy_officer", "fpo_coordinator", "farmer", "citizen", "admin"]
+    role: Literal["policy_officer", "fpo_coordinator", "farmer", "citizen", "municipal_supervisor", "admin"]
     sub: str | None = None
 
 
@@ -252,6 +252,17 @@ async def directives_approve(request: Request, directive_id: str, who: Principal
         raise ProblemError(404, "Directive not found", directive_id) from exc
     except ApprovalError as exc:
         raise ProblemError(409, "Cannot approve", str(exc)) from exc
+
+
+@router.get("/directives/{directive_id}/export", summary="Signed PDF of an approved directive", tags=["directives"], response_class=Response)
+async def directives_export(request: Request, directive_id: str, who: Principal = Depends(require_roles("policy_officer"))) -> Response:
+    try:
+        pdf = request.app.state.platform.directives.export(directive_id, who.sub, request.app.state.features.enabled("ADVISORY_EXPORT_ENABLED"))
+    except KeyError as exc:
+        raise ProblemError(404, "Directive not found", directive_id) from exc
+    except ExportError as exc:
+        raise ProblemError(409 if "approval" in str(exc) else 503, "Export refused", str(exc)) from exc
+    return Response(pdf, media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="advisory-{directive_id}.pdf"'})
 
 
 @router.get("/audit/verify", summary="Verify the audit hash chain (extension)", tags=["admin"])

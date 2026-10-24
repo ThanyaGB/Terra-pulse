@@ -1,6 +1,6 @@
 import type {
   AgentStatus, AttributionResponse, BiomassStatus, CitizenArea, CitizenSnapshot, ComplianceResponse, Farmer,
-  GridCell, HealthItem, MachineryStatus, MachineType, PlumeResponse, SourceShare,
+  GridCell, HealthItem, MachineryStatus, MachineType, PlumeResponse, SourceShare, WorkOrder,
 } from '@/api/contract';
 
 /** All values below are simulated demo data. */
@@ -229,3 +229,14 @@ export function citizenSnapshot(areaId: string, now = new Date()): CitizenSnapsh
     updatedAt: now.toISOString(),
   };
 }
+
+/** Supervisor work orders (simulated). Two are open, one is accepted, one is finished with a measured ROI. */
+export const WORK_ORDERS: WorkOrder[] = (() => {
+  const t = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
+  return [
+    { id: 'WO-A1F3C9', areaId: 'anand-vihar', area: 'Anand Vihar', actionType: 'fog_cannons', status: 'created', dueBy: t(3), slaBreached: false, acceptedAt: null, completedAt: null, roi: null },
+    { id: 'WO-B27D40', areaId: 'ito', area: 'ITO', actionType: 'road_sweeping', status: 'created', dueBy: t(5), slaBreached: false, acceptedAt: null, completedAt: null, roi: null },
+    { id: 'WO-C90E11', areaId: 'patparganj', area: 'Patparganj', actionType: 'dust_suppression', status: 'accepted', dueBy: t(2), slaBreached: false, acceptedAt: t(-1), completedAt: null, roi: null },
+    { id: 'WO-D5512A', areaId: 'okhla', area: 'Okhla', actionType: 'fog_cannons', status: 'completed', dueBy: t(-6), slaBreached: false, acceptedAt: t(-9), completedAt: t(-7), roi: { deltaPm25: 38.5, controlArea: 'rk-puram' } },
+  ];
+})();

@@ -18,6 +18,8 @@ const responses: Record<string, unknown> = {
     quality: { freshness_min: { firms: 1.2 }, status: { firms: 'ok', cpcb: 'ok', weather: 'degraded' }, origin: { firms: 'live', cpcb: 'live', weather: 'fixture' }, stations: { online: 9, total: 9 } },
     agents: [{ agent: 'risk_agent', status: 'ok', last_latency_ms: 12.4, events_processed: 3 }], fires: { active: 368, clusters: 263 },
   },
+  '/work-orders': { items: [{ id: 'WO-1', area_id: 'ito', area: 'ITO', action_type: 'fog_cannons', grap_tier: 'stage_3', status: 'completed', created_at: 'x', due_by: '2026-10-24T10:00:00Z',
+    sla_breached: false, accepted_by: 's', accepted_at: 'a', completed_at: 'c', completion_grid_ref: 'G', roi_window: null, roi: { delta_pm25: 31.5, control_area: 'rk-puram', measured_at: 'm' } }] },
   '/plume/projection': { generatedAt: 'x', horizonHours: 72, windSpeedKmh: 4, sources: [], corridor: [], hoursToReachNcr: null, streets: [] },
 };
 
@@ -84,5 +86,26 @@ describe('websocket envelope', () => {
     expect(envelopeToEvents({ channel: 'agent.status', ts, payload: { kind: 'fire', active_fires: 368, new_detections: 4 } })[0]).toMatchObject({ type: 'fire', activeFires: 368 });
     expect(envelopeToEvents({ channel: 'agent.status', ts, payload: { kind: 'agent', agent: 'risk_agent', status: 'ok', last_latency_ms: 3.2 } })[0]).toMatchObject({ type: 'agent', agent: { id: 'risk_agent' } });
     expect(envelopeToEvents({ channel: 'alert.fired', ts, payload: {} })).toEqual([]);
+  });
+});
+
+describe('live adapter: supervisor portal', () => {
+  it('maps work orders including the measured ROI', async () => {
+    const { client } = fakeClient();
+    const [w] = await createLiveApi('http://x/v1', client).listWorkOrders();
+    expect(w).toMatchObject({ id: 'WO-1', areaId: 'ito', actionType: 'fog_cannons', status: 'completed', dueBy: '2026-10-24T10:00:00Z', roi: { deltaPm25: 31.5, controlArea: 'rk-puram' } });
+  });
+
+  it('sends photo, GPS and the client request id as multipart, as the supervisor role', async () => {
+    const { client } = fakeClient();
+    const post = client.post as unknown as ReturnType<typeof vi.fn>;
+    post.mockResolvedValueOnce({ id: 'WO-1', area_id: 'ito', area: 'ITO', action_type: 'fog_cannons', status: 'completed', due_by: 'x', sla_breached: false, accepted_at: null, completed_at: 'c', roi: null, duplicate: true });
+    const r = await createLiveApi('http://x/v1', client).completeWorkOrder({ workOrderId: 'WO-1', clientRequestId: 'req-12345678', photoDataUrl: 'data:image/jpeg;base64,AAAA', lat: 28.6, lng: 77.3, capturedAt: 'x' });
+    const [path, role, body] = post.mock.calls[0]!;
+    expect(path).toBe('/work-orders/WO-1/complete');
+    expect(role).toBe('municipal_supervisor');
+    expect((body as FormData).get('client_request_id')).toBe('req-12345678');
+    expect((body as FormData).get('lat')).toBe('28.6');
+    expect(r.duplicate).toBe(true);
   });
 });

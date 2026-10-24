@@ -1,8 +1,8 @@
 import { createClient, type Client } from '@/api-client';
 import type {
   AdviceResponse, AssignmentReceipt, AttributionResponse, BiomassStatus, BookingReceipt, BookingRequest, CallDetails, CallLogEntry,
-  CallReceipt, CallSession, CitizenArea, CitizenSnapshot, ComplianceResponse, DirectivePreview, DirectiveReceipt, DirectiveType,
-  Farmer, FarmersResponse, HealthItem, HealthProfile, HealthResponse, Lang, MachineType, MachineryStatus, PlumeResponse,
+  CallReceipt, CallSession, CitizenArea, CitizenSnapshot, ComplianceResponse, CompletionReceipt, DirectivePreview, DirectiveReceipt, DirectiveType,
+  Farmer, FarmersResponse, HealthItem, HealthProfile, HealthResponse, Lang, MachineType, MachineryStatus, PlumeResponse, WorkOrder,
   RealtimeEvent, ReportReceipt, ReportRequest, RoutesResponse, VayuApi,
 } from './contract';
 import type { HealthStatus } from '@/lib/health';
@@ -18,6 +18,14 @@ interface PipelineHealth {
   agents: { agent: string; status: HealthStatus; last_latency_ms: number; events_processed: number }[];
   fires: { active: number; clusters: number };
 }
+interface WireWorkOrder {
+  id: string; area_id: string; area: string; action_type: WorkOrder['actionType']; status: WorkOrder['status']; due_by: string; sla_breached: boolean;
+  accepted_at: string | null; completed_at: string | null; roi: { delta_pm25: number; control_area: string | null } | null;
+}
+const toWorkOrder = (w: WireWorkOrder): WorkOrder => ({
+  id: w.id, areaId: w.area_id, area: w.area, actionType: w.action_type, status: w.status, dueBy: w.due_by, slaBreached: w.sla_breached,
+  acceptedAt: w.accepted_at, completedAt: w.completed_at, roi: w.roi ? { deltaPm25: w.roi.delta_pm25, controlArea: w.roi.control_area } : null,
+});
 interface Envelope { channel: string; ts: string; payload: Record<string, unknown> }
 
 const MIX_LABELS: Record<string, string> = {
@@ -193,6 +201,23 @@ export function createLiveApi(baseUrl: string, client: Client = createClient(bas
       if (req.lat !== null && req.lng !== null) { form.set('lat', String(req.lat)); form.set('lon', String(req.lng)); }
       const r = await post<{ reference_id: string; received_at: string }>('/reports/photo', 'citizen', form);
       return { referenceId: r.reference_id, receivedAt: r.received_at };
+    },
+
+    async listWorkOrders(): Promise<WorkOrder[]> {
+      const r = await get<{ items: WireWorkOrder[] }>('/work-orders', 'municipal_supervisor', { limit: 200 });
+      return r.items.map(toWorkOrder);
+    },
+    async acceptWorkOrder(id): Promise<WorkOrder> {
+      return toWorkOrder(await post<WireWorkOrder>(`/work-orders/${encodeURIComponent(id)}/accept`, 'municipal_supervisor'));
+    },
+    async completeWorkOrder(req): Promise<CompletionReceipt> {
+      const form = new FormData();
+      form.set('photo', dataUrlToBlob(req.photoDataUrl), 'completion.jpg');
+      form.set('lat', String(req.lat));
+      form.set('lon', String(req.lng));
+      form.set('client_request_id', req.clientRequestId);
+      const r = await post<WireWorkOrder & { duplicate: boolean }>(`/work-orders/${encodeURIComponent(req.workOrderId)}/complete`, 'municipal_supervisor', form);
+      return { workOrder: toWorkOrder(r), duplicate: r.duplicate };
     },
 
     async getRealtimeSnapshot(): Promise<RealtimeEvent[]> {

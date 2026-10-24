@@ -62,6 +62,7 @@ class World:
     routes: dict[str, dict[str, Any]] = field(default_factory=dict)        # 'from|to' -> options
     work_orders: dict[str, dict[str, Any]] = field(default_factory=dict)
     roi: list[dict[str, Any]] = field(default_factory=list)
+    work_order_events: list[dict[str, Any]] = field(default_factory=list)   # work_order_event rows: one per status transition
     agent_health: dict[str, dict[str, Any]] = field(default_factory=dict)
     contracts: list[dict[str, Any]] | None = None     # partner contracts; None = read config/partner_rates.yaml
 

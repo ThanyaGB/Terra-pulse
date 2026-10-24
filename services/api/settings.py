@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     bhashini_api_key: str | None = None
     outbox_path: str = "var/outbox.sqlite"
 
+    signing_key: str | None = Field(default=None, description="base64 32-byte Ed25519 seed for signed advisory PDFs; required outside dev")
     redis_url: str | None = None
     database_url: str | None = None
     data_gov_in_key: str | None = None
@@ -53,6 +54,8 @@ class Settings(BaseSettings):
                 self.jwt_secret = DEV_SECRET
             else:
                 raise ValueError("VAYU_JWT_SECRET is required when VAYU_ENV is not 'dev'. Provide it from the secret manager.")
+        if self.env != "dev" and not self.signing_key:
+            raise ValueError("VAYU_SIGNING_KEY is required when VAYU_ENV is not 'dev'. Provide it from the secret manager.")
         if self.env == "production" and self.jwt_secret == DEV_SECRET:
             raise ValueError("refusing to start in production with the development JWT secret")
         return self

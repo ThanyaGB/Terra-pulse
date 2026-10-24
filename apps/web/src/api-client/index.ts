@@ -6,7 +6,7 @@ import type { paths } from './schema';
 import { ApiError } from '../api/errors';
 
 export type ApiPath = keyof paths & string;
-export type Role = 'policy_officer' | 'fpo_coordinator' | 'farmer' | 'citizen' | 'admin';
+export type Role = 'policy_officer' | 'fpo_coordinator' | 'farmer' | 'citizen' | 'municipal_supervisor' | 'admin';
 
 export interface ProblemDetails {
   type?: string;
