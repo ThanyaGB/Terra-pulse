@@ -5,9 +5,10 @@ const STEPS = [
   { path: '/fpo', title: 'FPO console', body: 'Select a high-risk farmer, trigger a voice alert, assign a machine, and add a truck to watch eco-credits move.' },
   { path: '/farmer', title: 'Farmer call', body: 'Answer the call, press 1, 2 or 9 on the big keypad, then 1 to confirm or 0 to go back. Key 9 reaches an FPO worker.' },
   { path: '/citizen', title: 'Citizen app', body: 'Check AQI and the better window, plan a cleaner commute, and report smoke with a photo.' },
+  { path: '/ops', title: 'Supervisor portal', body: 'The GRAP-II order from step 1 arrived here as work orders. Accept one, then complete it with a photo and GPS (demo photo and location work too).' },
 ] as const;
 
-/** Judge demo mode: `?tour=1..4` shows a stepper over the four prototypes. */
+/** Judge demo mode: `?tour=1..5` shows a stepper over the five prototypes. */
 export function TourBar() {
   const { pathname, search } = useLocation();
   const nav = useNavigate();

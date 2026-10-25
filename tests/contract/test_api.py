@@ -162,7 +162,10 @@ def test_signed_webhook_dtmf_confirms_booking(client, H, calls_on):
     params = {"CallSid": call["call_id"], "CallStatus": "in-progress", "Digits": "1"}
     bad = client.post("/v1/calls/webhook/" + call["provider"], data=params, headers={"x-signature": "nope"})
     assert bad.status_code == 401
-    ok = client.post("/v1/calls/webhook/" + call["provider"], data=params, headers={"x-signature": prov.sign(url, params)})
+    first = client.post("/v1/calls/webhook/" + call["provider"], data=params, headers={"x-signature": prov.sign(url, params)})
+    assert first.status_code == 200 and first.json()["intent"] == "book_machine" and first.json()["result"]["status"] == "awaiting_confirmation"
+    confirm = {"CallSid": call["call_id"], "Digits": "1"}                 # second keypress: 1 confirms (ADR-09)
+    ok = client.post("/v1/calls/webhook/" + call["provider"], data=confirm, headers={"x-signature": prov.sign(url, confirm)})
     assert ok.status_code == 200 and ok.json()["intent"] == "book_machine" and ok.json()["result"]["booking"]["status"] == "confirmed"
 
 

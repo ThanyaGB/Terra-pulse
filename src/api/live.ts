@@ -51,6 +51,10 @@ export function createLiveApi(baseUrl: string): TerraPulseApi {
     getRoutes: (from, to) => request('GET', `/citizen/routes${q({ from, to })}`),
     submitReport: (req) => request('POST', '/citizen/reports', req),
 
+    listWorkOrders: () => request('GET', '/ops/work-orders'),
+    acceptWorkOrder: (id) => request('POST', `/ops/work-orders/${enc(id)}/accept`),
+    completeWorkOrder: (req) => request('POST', `/ops/work-orders/${enc(req.workOrderId)}/complete`, req),
+
     getRealtimeSnapshot: () => request('GET', '/realtime/snapshot'),
   };
 }

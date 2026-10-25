@@ -116,7 +116,7 @@ export function DirectiveBar() {
         confirmLabel="Record recommendation"
         tone={active === 'grap_ii' ? 'danger' : 'primary'}
         busy={busy}
-        confirmDisabled={preview.status !== 'success'}
+        confirmDisabled={preview.status !== 'success' || !preview.data}
         onConfirm={confirm}
         onCancel={() => setActive(null)}
       >

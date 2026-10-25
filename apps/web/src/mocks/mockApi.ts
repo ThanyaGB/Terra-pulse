@@ -4,6 +4,7 @@ import type {
   VayuApi,
 } from '@/api/contract';
 import { ApiError } from '@/api/errors';
+import { demoAdvisoryPdf } from './demoPdf';
 import { buildAdvice } from './advice';
 import {
   AGENTS, BIOMASS, CITIZEN_AREAS, COMPLIANCE, MACHINERY, OPERATORS, PLUME, VILLAGES, attributionFor,
@@ -147,9 +148,22 @@ export function createMockApi(): VayuApi {
       const d = directives.get(did);
       if (!d) throw new ApiError('Directive not found', 404);
       if (d.status !== 'approved') throw new ApiError('A directive can be exported only after approval', 409);
-      return { filename: `advisory-${did}.pdf`, blob: new Blob([`%PDF-1.4
-% demo advisory ${did} (simulated, unsigned)
-`], { type: 'application/pdf' }) };
+      const p = DIRECTIVES[d.type];
+      const blob = demoAdvisoryPdf([
+        { text: 'Vayu-Swachh - Air quality advisory', size: 18, bold: true, gap: 40 },
+        { text: `Directive ${d.id}  |  ${p.title}`, size: 12, bold: true, gap: 34 },
+        { text: `Issued: ${new Date(d.issuedAt).toLocaleString('en-IN')}   Status: approved`, gap: 20 },
+        { text: 'Recommended action', bold: true, gap: 30 },
+        { text: p.action },
+        { text: 'Affected areas', bold: true, gap: 30 },
+        ...p.affectedAreas.map((a) => ({ text: `-  ${a.name}: ${a.detail}` })),
+        { text: 'Note', bold: true, gap: 30 },
+        { text: p.note },
+        { text: 'DEMO COPY - NOT SIGNED. Generated in mock mode with simulated data.', bold: true, gap: 44 },
+        { text: 'With the live backend this file carries an Ed25519 platform signature (ADR-14).' },
+        { text: 'This is a recommendation record. The platform does not send it to any agency.' },
+      ]);
+      return { filename: `advisory-${did}.pdf`, blob };
     }),
     getPublicConfig: (): Promise<PublicConfig> => Promise.resolve(MOCK_CONFIG),
 

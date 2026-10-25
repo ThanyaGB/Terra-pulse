@@ -249,6 +249,39 @@ export interface ReportReceipt {
   receivedAt: string;
 }
 
+/* ---------- 5. Municipal supervisor portal (/ops) ---------- */
+export type WorkOrderStatus = 'created' | 'accepted' | 'completed';
+export type WorkActionType = 'fog_cannons' | 'road_sweeping' | 'dust_suppression';
+/** GET /ops/work-orders */
+export interface WorkOrder {
+  id: string;
+  areaId: string;
+  area: string;
+  actionType: WorkActionType;
+  status: WorkOrderStatus;
+  dueBy: string;
+  createdAt: string;
+  /** the directive that created this order, e.g. "GRAP-II alert · DIR-AB12"; null for routine orders */
+  source: string | null;
+  acceptedAt: string | null;
+  completedAt: string | null;
+  /** measured 4-12 h after completion against a control station; null until then */
+  roi: { deltaPm25: number; controlArea: string | null } | null;
+}
+/** POST /ops/work-orders/:id/complete. `clientRequestId` is made once per attempt, so a queued upload that syncs twice completes the order once. */
+export interface CompletionRequest {
+  workOrderId: string;
+  clientRequestId: string;
+  photoDataUrl: string;
+  lat: number;
+  lng: number;
+  capturedAt: string;
+}
+export interface CompletionReceipt {
+  workOrder: WorkOrder;
+  duplicate: boolean;
+}
+
 /* ---------- Realtime (WebSocket /ws/v1/stream, polling GET /realtime/snapshot) ---------- */
 export type RealtimeEvent =
   | { type: 'aqi'; areaId: string; areaName: string; aqi: number; pm25: number; ts: string }
@@ -279,6 +312,10 @@ export interface TerraPulseApi {
   getAdvice(profile: HealthProfile, hour: number): Promise<AdviceResponse>;
   getRoutes(from: string, to: string): Promise<RoutesResponse>;
   submitReport(req: ReportRequest): Promise<ReportReceipt>;
+
+  listWorkOrders(): Promise<WorkOrder[]>;
+  acceptWorkOrder(id: string): Promise<WorkOrder>;
+  completeWorkOrder(req: CompletionRequest): Promise<CompletionReceipt>;
 
   getRealtimeSnapshot(): Promise<RealtimeEvent[]>;
 }

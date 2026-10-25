@@ -31,8 +31,8 @@ export function DirectiveBar() {
     try {
       const receipt = await api.issueDirective(active, preview.data.affectedAreas.map((a) => a.id));
       setIssued((l) => [receipt, ...l]);
-      recordOrder(receipt, preview.data.title);
-      toast(`${preview.data.title}: queued (${receipt.id})`, 'success');
+      const made = recordOrder(receipt, preview.data.title);
+      toast(`${preview.data.title}: queued (${receipt.id})${made ? ` · ${made} work orders sent to city teams (/ops)` : ''}`, 'success');
       setActive(null);
     } catch {
       setSendError('The directive was not sent. Nothing has changed. Please try again.');
@@ -62,7 +62,7 @@ export function DirectiveBar() {
         confirmLabel="Send directive"
         tone={active === 'grap_ii' ? 'danger' : 'primary'}
         busy={busy}
-        confirmDisabled={preview.status !== 'success'}
+        confirmDisabled={preview.status !== 'success' || !preview.data}
         onConfirm={confirm}
         onCancel={() => setActive(null)}
       >

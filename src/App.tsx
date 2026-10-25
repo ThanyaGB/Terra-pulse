@@ -10,6 +10,7 @@ const PolicyPage = lazy(() => import('./features/policy/PolicyPage'));
 const FpoPage = lazy(() => import('./features/fpo/FpoPage'));
 const FarmerPage = lazy(() => import('./features/farmer/FarmerPage'));
 const CitizenPage = lazy(() => import('./features/citizen/CitizenPage'));
+const OpsPage = lazy(() => import('./features/ops/OpsPage'));
 
 function NotFound() {
   return (
@@ -44,6 +45,7 @@ export function App() {
             <Route path="/fpo" element={<FpoPage />} />
             <Route path="/farmer" element={<FarmerPage />} />
             <Route path="/citizen" element={<CitizenPage />} />
+            <Route path="/ops" element={<OpsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>

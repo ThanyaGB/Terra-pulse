@@ -1,8 +1,9 @@
 import type {
-  AssignmentReceipt, BookingReceipt, BookingRequest, CallDetails, CallReceipt, DirectivePreview, DirectiveReceipt,
+  AssignmentReceipt, BookingReceipt, BookingRequest, CallDetails, CallReceipt, CompletionReceipt, CompletionRequest, DirectivePreview, DirectiveReceipt,
   DirectiveType, Farmer, HealthProfile, Lang, MachineType, MachineryStatus, RealtimeEvent, ReportReceipt, ReportRequest,
-  TerraPulseApi,
+  TerraPulseApi, WorkOrder,
 } from '../contract';
+import { getWorkOrders, saveWorkOrders } from '@/lib/workorders';
 import { ApiError } from '../errors';
 import { buildAdvice } from './advice';
 import {
@@ -72,6 +73,7 @@ const DIRECTIVES: Record<DirectiveType, Omit<DirectivePreview, 'type'>> = {
 export function createMockApi(): TerraPulseApi {
   // Mutable session state so actions are visible across screens.
   let machinery: MachineryStatus[] = MACHINERY.map((m) => ({ ...m }));
+  const completionByRequest = new Map<string, string>();   // clientRequestId -> work order, so a re-sent completion counts once
   const farmers: Farmer[] = makeFarmers();
   const callLogs = new Map<string, CallDetails['log']>();
   let reportCounter = 4200;
@@ -174,6 +176,30 @@ export function createMockApi(): TerraPulseApi {
       if (!['open_burning', 'construction', 'road_dust'].includes(req.category)) throw new ApiError('Unknown category', 400);
       reportCounter += 1;
       return { referenceId: `VS-R-${reportCounter}`, receivedAt: new Date().toISOString() };
+    }),
+
+    listWorkOrders: () => gate(true, () => [...getWorkOrders()].sort((a, b) => a.dueBy.localeCompare(b.dueBy)), () => []),
+    acceptWorkOrder: (wid) => gate(false, (): WorkOrder => {
+      const all = getWorkOrders();
+      const w = all.find((o) => o.id === wid);
+      if (!w) throw new ApiError('Work order not found', 404);
+      if (w.status === 'accepted') return { ...w };
+      if (w.status !== 'created') throw new ApiError('A completed work order cannot be accepted', 409);
+      const next: WorkOrder = { ...w, status: 'accepted', acceptedAt: new Date().toISOString() };
+      saveWorkOrders(all.map((o) => (o.id === wid ? next : o)));
+      return next;
+    }),
+    completeWorkOrder: (req: CompletionRequest) => gate(false, (): CompletionReceipt => {
+      const all = getWorkOrders();
+      const w = all.find((o) => o.id === req.workOrderId);
+      if (!w) throw new ApiError('Work order not found', 404);
+      if (completionByRequest.get(req.clientRequestId) === w.id) return { workOrder: { ...w }, duplicate: true };
+      if (w.status !== 'accepted') throw new ApiError('Accept the work order before completing it', 409);
+      if (!req.photoDataUrl || !Number.isFinite(req.lat) || !Number.isFinite(req.lng)) throw new ApiError('A photo and GPS position are required', 422);
+      const next: WorkOrder = { ...w, status: 'completed', completedAt: new Date().toISOString() };
+      saveWorkOrders(all.map((o) => (o.id === w.id ? next : o)));
+      completionByRequest.set(req.clientRequestId, w.id);
+      return { workOrder: next, duplicate: false };
     }),
 
     getRealtimeSnapshot: async (): Promise<RealtimeEvent[]> => {

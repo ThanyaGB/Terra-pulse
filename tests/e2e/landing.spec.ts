@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-test('landing: scroll story renders, links reach the four prototypes, judge tour steps through', async ({ page }) => {
+test('landing: scroll story renders, links reach the five prototypes, judge tour steps through', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('main')).toBeVisible();
   await page.mouse.wheel(0, 3000);
@@ -8,12 +8,14 @@ test('landing: scroll story renders, links reach the four prototypes, judge tour
   await page.getByRole('link', { name: /Start judge demo mode/ }).click();
   await expect(page).toHaveURL(/\/policy\?tour=1/);
   const tour = page.getByRole('complementary', { name: 'Judge demo tour' });
-  await expect(tour).toContainText('TOUR 1/4');
+  await expect(tour).toContainText('TOUR 1/5');
   await tour.getByRole('button', { name: 'Next' }).click();
   await expect(page).toHaveURL(/\/fpo\?tour=2/);
   await tour.getByRole('button', { name: 'Next' }).click();
   await tour.getByRole('button', { name: 'Next' }).click();
   await expect(page).toHaveURL(/\/citizen\?tour=4/);
+  await tour.getByRole('button', { name: 'Next' }).click();
+  await expect(page).toHaveURL(/\/ops\?tour=5/);
   await expect(tour.getByRole('link', { name: 'Finish' })).toBeVisible();
 });
 

@@ -1,4 +1,5 @@
 import threading
+from datetime import datetime, timezone
 
 import httpx
 import pytest
@@ -11,10 +12,15 @@ from integrations.mcd import NullNotifier
 from integrations.telephony import FakeProvider, TelephonyAdapter, TwilioProvider
 
 
+def NOON_IST() -> datetime:
+    """A fixed time inside calling hours (12:00 IST), so these tests do not depend on when CI runs."""
+    return datetime(2026, 10, 23, 6, 30, tzinfo=timezone.utc)
+
+
 def test_failover_after_three_failures_and_in_progress_calls_survive():
     alerts = []
     a, b = FakeProvider("twilio"), FakeProvider("exotel")
-    tel = TelephonyAdapter(a, b, on_alert=alerts.append)
+    tel = TelephonyAdapter(a, b, on_alert=alerts.append, clock=NOON_IST)
     first = tel.place_call("P1", "9814000000", "u", "cb")
     assert first.provider == "twilio"
     a.up = False                                     # simulated primary outage
@@ -27,7 +33,7 @@ def test_failover_after_three_failures_and_in_progress_calls_survive():
 
 def test_call_still_goes_out_when_primary_fails_mid_call_placement():
     a, b = FakeProvider("twilio"), FakeProvider("exotel")
-    tel = TelephonyAdapter(a, b)
+    tel = TelephonyAdapter(a, b, clock=NOON_IST)
     a.up = False
     rec = tel.place_call("P1", "9814000000", "u", "cb")
     assert rec.provider == "exotel" and tel.active == "twilio" and tel.failures == 1
@@ -36,7 +42,7 @@ def test_call_still_goes_out_when_primary_fails_mid_call_placement():
 def test_signed_webhook_and_dtmf_keys():
     got = []
     p = FakeProvider("twilio")
-    tel = TelephonyAdapter(p, FakeProvider("exotel"), on_dtmf=lambda r, k: got.append(k))
+    tel = TelephonyAdapter(p, FakeProvider("exotel"), on_dtmf=lambda r, k: got.append(k), clock=NOON_IST)
     rec = tel.place_call("P1", "9814000000", "u", "cb")
     params = {"CallSid": rec.call_id, "Digits": "1"}
     with pytest.raises(PermissionError):

@@ -10,7 +10,8 @@ from api.security import issue_token
 from api.settings import Settings
 from ingestion.pipeline import build_snapshot
 
-SETTINGS = Settings(env="dev", jwt_secret="test-secret-test-secret", data_mode="offline", photo_dir="var/test-photos", outbox_path=":memory:", feature_overrides_path=None)
+SETTINGS = Settings(env="dev", jwt_secret="test-secret-test-secret", data_mode="offline", photo_dir="var/test-photos", outbox_path=":memory:", feature_overrides_path=None,
+                    redis_url=None)   # per-app in-memory call limits: CI's shared Redis would carry call caps across tests
 
 
 @pytest.fixture(scope="session")

@@ -1,6 +1,7 @@
 import type { DirectiveReceipt, DirectiveType } from '@/api/contract';
+import { createWorkOrdersFor } from './workorders';
 
-/** Session-shared state between /policy (writes) and /citizen (reads the GRAP banner). */
+/** Session-shared state between /policy (writes), /citizen (reads the GRAP banner) and /ops (gets the work orders). */
 const ORDERS_KEY = 'terrapulse.orders';
 const GRAP_KEY = 'terrapulse.grap';
 const EVENT = 'terrapulse:orders';
@@ -15,10 +16,13 @@ function write(key: string, v: unknown) { try { localStorage.setItem(key, JSON.s
 export const getOrders = (): OrderEntry[] => read<OrderEntry[]>(ORDERS_KEY, []);
 export const isGrapActive = (): boolean => read<boolean>(GRAP_KEY, false);
 
-export function recordOrder(receipt: DirectiveReceipt, title: string) {
+/** Logs the directive and hands its on-the-ground tasks to the supervisor portal. Returns the number of work orders created. */
+export function recordOrder(receipt: DirectiveReceipt, title: string): number {
   write(ORDERS_KEY, [{ id: receipt.id, type: receipt.type, title, issuedAt: receipt.issuedAt }, ...getOrders()].slice(0, 20));
   if (receipt.type === 'grap_ii') write(GRAP_KEY, true);
+  const made = createWorkOrdersFor(receipt);
   window.dispatchEvent(new Event(EVENT));
+  return made;
 }
 
 export function clearOrders() {

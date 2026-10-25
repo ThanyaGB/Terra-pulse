@@ -198,6 +198,7 @@ export default function Landing() {
                 <Link to="/fpo"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D2</b>  FPO dispatch console</Link>
                 <Link to="/farmer"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D3</b>  Farmer voice-call simulator</Link>
                 <Link to="/citizen"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D4</b>  Citizen &amp; sensitive-groups app</Link>
+                <Link to="/ops"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D5</b>  Municipal supervisor portal</Link>
               </div>
             </>)}
           </div>
@@ -213,7 +214,7 @@ export default function Landing() {
               </>)}
             </svg>
           </button>
-          <Link className="lp-btn lp-btn-g" to="/policy?tour=1" style={{ minHeight: '40px' }} aria-label="Start judge demo mode, a guided tour of the four prototypes">
+          <Link className="lp-btn lp-btn-g" to="/policy?tour=1" style={{ minHeight: '40px' }} aria-label="Start judge demo mode, a guided tour of the five prototypes">
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 2 L12 7 L3 12 Z" fill="#fff"></path></svg>
             Judge demo mode
           </Link>
@@ -725,6 +726,11 @@ export default function Landing() {
                 <h3 className="lp-pop" style={{ margin: '0 0 6px', fontSize: '20px' }}>And on the street?</h3>
                 <p style={{ margin: '0 0 16px', color: '#E3F8EE', fontSize: '15px' }}>Asthma alerts, cleaner commute routes, and one-tap dust reports for Delhi residents.</p>
                 <Link className="lp-btn lp-btn-w" to="/citizen" style={{ width: '100%', justifyContent: 'center' }}>Try the citizen app</Link>
+              </div>
+              <div className="lp-card lp-glass lp-reveal" style={{ padding: '24px', background: 'rgba(255,255,255,.85)' }}>
+                <h3 className="lp-pop" style={{ margin: '0 0 6px', fontSize: '20px' }}>And the city teams?</h3>
+                <p style={{ margin: '0 0 16px', color: '#3B526B', fontSize: '15px' }}>A GRAP-II order becomes work orders for municipal supervisors: fog cannons, road sweeping, dust control. They finish each one with a photo and GPS, and the air reading shows whether it helped.</p>
+                <Link className="lp-btn lp-btn-g" to="/ops" style={{ width: '100%', justifyContent: 'center' }}>Open the supervisor portal</Link>
               </div>
             </div>
           </div>
