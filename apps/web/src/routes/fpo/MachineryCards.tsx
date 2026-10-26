@@ -41,9 +41,6 @@ export function MachineryCards({ state, onRetry }: { state: AsyncState<Machinery
 }
 
 export const TRUCK_TONNES = 8;
-/** Demo rule: 1 eco-credit per tonne of straw removed, valued at the Bio-CNG floor price. */
-export const CREDIT_PER_TONNE = 1;
-
 export function BiomassCard({ state, onRetry, extraTrucks, onAddTruck }: { state: AsyncState<BiomassStatus>; onRetry: () => void; extraTrucks: number; onAddTruck: () => void }) {
   return (
     <Tile dark title="Biomass purchase" aside={<Tag color="#8FD3FF">Example partner</Tag>} className="h-full">
@@ -71,16 +68,26 @@ export function BiomassCard({ state, onRetry, extraTrucks, onAddTruck }: { state
 
 export function EcoCreditsTile({ state, extraTrucks }: { state: AsyncState<BiomassStatus>; extraTrucks: number }) {
   return (
-    <Tile title="Eco-credits" aside={<Tag>Demo rule</Tag>}>
-      <AsyncBoundary state={state} onRetry={() => undefined} what="eco-credits">
+    <Tile title="Straw & non-burn reward" aside={<Tag>Not yet funded</Tag>}>
+      <AsyncBoundary state={state} onRetry={() => undefined} what="straw collection">
         {(b) => {
           const tonnes = b.tonnesRemovedToday + extraTrucks * TRUCK_TONNES;
-          const credits = Math.round(tonnes * CREDIT_PER_TONNE);
           return (
-            <div className="flex flex-col gap-1">
-              <div><span className="mono text-3xl font-bold text-leaf-700" aria-live="polite">{formatNumber(credits)}</span> <span className="text-sm text-ink-soft">credits today</span></div>
-              <div className="mono text-xs text-ink-soft">{formatNumber(tonnes, 1)} t × {CREDIT_PER_TONNE} credit/t = {formatNumber(credits)} credits {b.floorPriceInrPerTonne !== null && <> ≈ {formatInr(Math.round(tonnes * b.floorPriceInrPerTonne))}</>}</div>
-              <p className="m-0 mt-1 text-xs text-ink-mute">Illustrative formula for the prototype. The real credit scheme is not defined in the brief.</p>
+            <div className="flex flex-col gap-3">
+              <div>
+                <div className="text-xs text-ink-soft">Straw sold by the buyer</div>
+                <div><span className="mono text-3xl font-bold text-leaf-700" aria-live="polite">{formatNumber(tonnes, 1)}</span> <span className="text-sm text-ink-soft">t collected today</span></div>
+                {b.floorPriceInrPerTonne !== null ? (
+                  <div className="mono text-xs text-ink-soft">{formatNumber(tonnes, 1)} t × {formatInr(b.floorPriceInrPerTonne)}/t = {formatInr(Math.round(tonnes * b.floorPriceInrPerTonne))} (straw price, paid by buyer)</div>
+                ) : (
+                  <div className="text-xs text-ink-soft">No buy-back contract, so no straw price.</div>
+                )}
+              </div>
+              <div>
+                <div className="text-xs text-ink-soft">Non-burn reward</div>
+                <p className="m-0 text-sm text-ink" data-testid="reward-unset">No reward rate or funder is set yet. A reward would be paid only after a weighed, accepted collection is recorded.</p>
+              </div>
+              <p className="m-0 text-xs text-ink-mute">Straw payment and non-burn reward are kept separate. No credit value is shown because none is defined.</p>
             </div>
           );
         }}
