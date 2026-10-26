@@ -27,18 +27,19 @@ Scripts (root): `npm run build`, `npm run typecheck`, `npm test` (Vitest), `npm 
     - Captions are in `content.ts`.
   - `/policy`: dark command-centre dashboard. Issuing GRAP-II shows a banner on `/citizen` and creates 3 work orders on `/ops`.
   - `/fpo`: FPO console: machinery ring gauges, + Truck (+8 t), eco-credits (`src/lib/ecocredits.ts`: straw × 1.5 = CO₂e avoided, × 10 = credits; farmer income = straw × ₹1,650/t, shown separately).
-  - `/farmer`: phone-call simulator. Full 12-key keypad: menu 1 = machine, 2 = straw pickup, 9 = FPO worker; then 1 = confirm, 0 = back. Nothing is booked before the confirming 1. No WhatsApp anywhere.
+  - `/farmer`: phone-call simulator. Full 12-key keypad: menu 1 = machine, 2 = straw pickup, 9 = FPO worker. After 1: 1 = Super Seeder, 2 = Happy Seeder, 0 = back to the menu. Then 1 = confirm, 0 = back. `*` repeats at any step (the whole call message at the menu). Nothing is booked before the confirming 1. No WhatsApp anywhere. Flow logic: `src/features/farmer/keypadFlow.ts`.
   - `/citizen`: PWA with AQI, 24 h forecast "better window", clean commute, snap-and-report.
   - `/ops`: municipal supervisor portal. Accept, then Complete with photo + GPS (demo photo and demo location buttons for laptops).
 - Judge tour: `/fpo?tour=1..5` (fpo → farmer → citizen → policy → ops), same order as the landing "System prototypes" menu (D1–D5). The tour panel (`src/design/TourBar.tsx`) floats: drag it by its header, minimise it to a pill, double-click or Home to dock; position and minimised state persist in `vayuswachh.tour.ui`.
 
 ## Backend notes
 
-- Farmer call: `POST /calls/keypress {parcel_id, key: 0|1|2|9, lang}` is two-step (`services/api/services.py` `Ops.handle_key`, pending choice per parcel). Prompts live in `packages/domain/config/farmer_scripts_v1.yaml` (v3). Key 9 goes to `services/api/fpo_desk.py` (`config/fpo_desk.yaml`).
+- Farmer call: `POST /calls/keypress {parcel_id, key: 0|1|2|9|*, lang}` (`services/api/services.py` `Ops.handle_key`, keypad step per parcel). Menu 1 returns `choose_machine`; then 1/2 picks `super_seeder`/`happy_seeder` and returns `awaiting_confirmation`; 2 and 9 go straight to `awaiting_confirmation`; `*` returns `repeat`. Prompts live in `packages/domain/config/farmer_scripts_v1.yaml` (v4: `machine_menu`, `confirm`, `back_to_menu`). Key 9 goes to `services/api/fpo_desk.py` (`config/fpo_desk.yaml`).
+- The main front end's live adapter (`src/api/live.ts`) is not wired to these `/v1` routes yet, so `/farmer` runs on the mock; `apps/web/src/api/live.ts` does call `/calls/keypress`.
 - Data sources: NASA FIRMS (VIIRS fires), Sentinel-2 NDVI (harvest timing), CPCB stations (data.gov.in), CAMS and ERA5 via Open-Meteo, OpenStreetMap (placeholder covariates), simulated machinery CRM.
 - Safety rules: masked phones, two-person approval for diversions and external feature flags, calls only 08:00–19:00 IST, an audit hash chain, and risky flags off by default.
 - WhatsApp was removed entirely (integration, flag, tests, UI).
-- `packages/contracts/openapi.json` and `apps/web/src/api-client/schema.d.ts` were hand-edited for the keypad change. Regenerate with `python scripts/export_contracts.py` and `npm run gen:api` if they drift.
+- After an API change, regenerate `packages/contracts/openapi.json` with `python scripts/export_contracts.py` and `apps/web/src/api-client/schema.d.ts` with `npm run gen:api` (in `apps/web`); `tests/contract/test_contracts.py` fails on drift.
 
 ## Conventions and open items
 

@@ -13,8 +13,8 @@ from integrations.bhashini import BhashiniClient, script_hash
 
 log = logging.getLogger("audio")
 LANGS = ("pa", "hi", "en")
-DTMF_PROMPTS = ("press_1", "press_2", "press_9", "confirm_1", "confirm_2", "confirm_9", "back_to_menu", "invalid_key", "thank_you",
-                "callback_offer")
+DTMF_PROMPTS = ("press_1", "press_2", "press_9", "machine_menu", "confirm_super_seeder", "confirm_happy_seeder", "confirm_2", "confirm_9",
+                "back_to_menu", "invalid_key", "thank_you", "callback_offer")
 
 
 @dataclass(frozen=True)

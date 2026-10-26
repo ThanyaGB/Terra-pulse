@@ -113,11 +113,15 @@ def _press(client, H, pid, *keys, lang="en"):
 
 def test_keypad_choice_then_one_confirms_booking_collection_and_fpo_worker(client, H, contract_active):
     pid = list(client.platform.world.parcels)[3]
-    step1 = _press(client, H, pid, "1").json()
-    assert step1["status"] == "awaiting_confirmation" and step1["prompt"] == "confirm_1" and "Press 1 to confirm" in step1["prompt_text"]
+    menu = _press(client, H, pid, "1").json()                                 # 1 at the menu: which machine?
+    assert menu["status"] == "choose_machine" and menu["prompt"] == "machine_menu" and "Happy Seeder" in menu["prompt_text"]
+    step2 = _press(client, H, pid, "1").json()                                # 1 = Super Seeder, still nothing booked
+    assert step2["status"] == "awaiting_confirmation" and step2["machine_type"] == "super_seeder" and step2["prompt"] == "confirm_super_seeder"
+    assert "Press 1 to confirm" in step2["prompt_text"]
     assert not client.platform.world.bookings or all(b["parcel_id"] != pid or b["status"] != "confirmed" for b in client.platform.world.bookings.values())
     r = _press(client, H, pid, "1").json()
-    assert r["status"] == "confirmed" and r["key"] == "1" and r["booking"]["status"] == "confirmed"
+    assert r["status"] == "confirmed" and r["key"] == "1" and r["machine_type"] == "super_seeder" and r["booking"]["status"] == "confirmed"
+    assert r["booking"]["machinery"]["type"] == "super_seeder"
     r2 = _press(client, H, pid, "2", "1").json()
     assert r2["key"] == "2" and r2["collection"]["floor_price_inr_per_tonne"] == 1650
     r9 = _press(client, H, pid, "9", "1").json()
@@ -128,7 +132,7 @@ def test_keypad_choice_then_one_confirms_booking_collection_and_fpo_worker(clien
 def test_keypad_zero_goes_back_and_nothing_is_booked(client, H):
     pid = list(client.platform.world.parcels)[2]
     before = len(client.platform.world.bookings)
-    assert _press(client, H, pid, "1").json()["status"] == "awaiting_confirmation"
+    assert _press(client, H, pid, "1", "1").json()["status"] == "awaiting_confirmation"
     back = _press(client, H, pid, "0").json()
     assert back["status"] == "cancelled" and back["prompt"] == "back_to_menu" and len(client.platform.world.bookings) == before
     assert _press(client, H, pid, "0").status_code == 400                  # 0 means nothing at the menu
@@ -138,11 +142,41 @@ def test_keypad_zero_goes_back_and_nothing_is_booked(client, H):
     assert pa["prompt_text"].startswith("ਤੁਸੀਂ FPO ਕਰਮਚਾਰੀ")
 
 
+def test_keypad_machine_menu_happy_seeder_and_zero_goes_back(client, H, contract_active):
+    pid = list(client.platform.world.parcels)[4]
+    before = len(client.platform.world.bookings)
+    assert _press(client, H, pid, "1").json()["status"] == "choose_machine"
+    assert _press(client, H, pid, "9").status_code == 400                  # only 1, 2 or 0 on the machine menu
+    back = _press(client, H, pid, "0").json()                              # 0 on the machine menu: back to the main menu
+    assert back["status"] == "cancelled" and back["key"] == "1" and back["prompt"] == "back_to_menu"
+    assert len(client.platform.world.bookings) == before
+    assert _press(client, H, pid, "1").json()["status"] == "choose_machine"  # back at the menu, 1 means machine again
+    hs = _press(client, H, pid, "2").json()
+    assert hs["machine_type"] == "happy_seeder" and hs["prompt"] == "confirm_happy_seeder" and "Happy Seeder" in hs["prompt_text"]
+    done = _press(client, H, pid, "1").json()
+    assert done["status"] == "confirmed" and done["booking"]["machinery"]["type"] == "happy_seeder"
+    assert _press(client, H, pid, "1", "2", lang="pa").json()["prompt_text"].startswith("ਤੁਸੀਂ ਹੈਪੀ ਸੀਡਰ")
+
+
+def test_keypad_star_repeats_the_current_step(client, H):
+    pid = list(client.platform.world.parcels)[5]
+    menu = _press(client, H, pid, "*").json()                              # at the menu: the whole call message again
+    assert menu["status"] == "repeat" and menu["step"] == "menu" and menu["prompt"] == "call_script" and len(menu["lines"]) >= 1
+    assert _press(client, H, pid, "1").json()["status"] == "choose_machine"
+    mm = _press(client, H, pid, "*").json()
+    assert mm["status"] == "repeat" and mm["prompt"] == "machine_menu"
+    assert _press(client, H, pid, "2").json()["status"] == "awaiting_confirmation"   # * did not move the step
+    cf = _press(client, H, pid, "*").json()
+    assert cf["status"] == "repeat" and cf["prompt"] == "confirm_happy_seeder" and "Happy Seeder" in cf["prompt_text"]
+    assert _press(client, H, pid, "0").json()["status"] == "cancelled"
+    assert _press(client, H, pid, "5").status_code == 422                   # not a keypad key at all
+
+
 def test_a_new_call_session_starts_at_the_menu(client, H):
     pid = list(client.platform.world.parcels)[1]
     assert _press(client, H, pid, "2").json()["status"] == "awaiting_confirmation"
     client.get(f"/v1/calls/session?lang=en&parcel_id={pid}", headers=H("farmer"))
-    assert _press(client, H, pid, "1").json()["status"] == "awaiting_confirmation"
+    assert _press(client, H, pid, "1").json()["status"] == "choose_machine"
 
 
 def test_call_rate_limit_per_parcel(client, H, calls_on):
@@ -163,8 +197,14 @@ def test_signed_webhook_dtmf_confirms_booking(client, H, calls_on):
     bad = client.post("/v1/calls/webhook/" + call["provider"], data=params, headers={"x-signature": "nope"})
     assert bad.status_code == 401
     first = client.post("/v1/calls/webhook/" + call["provider"], data=params, headers={"x-signature": prov.sign(url, params)})
-    assert first.status_code == 200 and first.json()["intent"] == "book_machine" and first.json()["result"]["status"] == "awaiting_confirmation"
-    confirm = {"CallSid": call["call_id"], "Digits": "1"}                 # second keypress: 1 confirms (ADR-09)
+    assert first.status_code == 200 and first.json()["intent"] == "book_machine" and first.json()["result"]["status"] == "choose_machine"
+    star = {"CallSid": call["call_id"], "Digits": "*"}                    # * repeats the machine menu over the phone too
+    rep = client.post("/v1/calls/webhook/" + call["provider"], data=star, headers={"x-signature": prov.sign(url, star)})
+    assert rep.status_code == 200 and rep.json()["result"]["status"] == "repeat"
+    machine = {"CallSid": call["call_id"], "Digits": "1"}                 # second keypress: 1 = Super Seeder
+    pick = client.post("/v1/calls/webhook/" + call["provider"], data=machine, headers={"x-signature": prov.sign(url, machine)})
+    assert pick.json()["result"]["status"] == "awaiting_confirmation"
+    confirm = {"CallSid": call["call_id"], "Digits": "1"}                 # third keypress: 1 confirms (ADR-09)
     ok = client.post("/v1/calls/webhook/" + call["provider"], data=confirm, headers={"x-signature": prov.sign(url, confirm)})
     assert ok.status_code == 200 and ok.json()["intent"] == "book_machine" and ok.json()["result"]["booking"]["status"] == "confirmed"
 

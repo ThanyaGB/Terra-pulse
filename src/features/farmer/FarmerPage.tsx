@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
-import type { BookingReceipt, KeyAction } from '@/api/contract';
+import type { BookingReceipt, KeyAction, SeederType } from '@/api/contract';
 import { useAsync } from '@/hooks/useAsync';
 import { AsyncBoundary } from '@/design/AsyncBoundary';
 import { IconBack, IconPause, IconPhone, IconPlay } from '@/design/Icons';
@@ -12,6 +12,7 @@ import { useI18n } from '@/i18n';
 import { mmss } from '@/lib/format';
 import { playDtmf, speakText } from './callAudio';
 import { KeypadPanel } from './KeypadPanel';
+import type { Choice, Step } from './keypadFlow';
 import { useCallAudio } from './useCallAudio';
 import { Waveform } from './Waveform';
 import type { MessageKey } from '@/i18n';
@@ -19,7 +20,9 @@ import type { MessageKey } from '@/i18n';
 type Phase = 'ringing' | 'live' | 'ended';
 
 const DONE_KEY: Record<KeyAction, MessageKey> = { '1': 'farmer.done1', '2': 'farmer.done2', '9': 'farmer.done9' };
-const CONFIRM_KEY: Record<KeyAction, MessageKey> = { '1': 'farmer.confirm1', '2': 'farmer.confirm2', '9': 'farmer.confirm9' };
+const CONFIRM_MACHINE: Record<SeederType, MessageKey> = { super_seeder: 'farmer.confirmSuper', happy_seeder: 'farmer.confirmHappy' };
+/** The read-back line for a choice: "You chose the Happy Seeder. Press 1 to confirm, or 0 to go back." */
+const confirmLine = (c: Choice): MessageKey => (c.key === '1' ? CONFIRM_MACHINE[c.machine ?? 'super_seeder'] : c.key === '2' ? 'farmer.confirm2' : 'farmer.confirm9');
 
 export default function FarmerPage() {
   const { lang, t } = useI18n();
@@ -32,7 +35,7 @@ export default function FarmerPage() {
   const gloss = useAsync(() => (lang === 'en' ? Promise.resolve(null) : api.getCallSession('en')), [lang]);
   const [phase, setPhase] = useState<Phase>('ringing');
   const [elapsed, setElapsed] = useState(0);
-  const { audio, line, playing, ended, voiceMissing, answer, toggle, stop } = useCallAudio(session, phase === 'live');
+  const { audio, line, playing, ended, voiceMissing, answer, toggle, stop, replay } = useCallAudio(session, phase === 'live');
 
   useEffect(() => {
     if (phase !== 'live') return;
@@ -41,22 +44,32 @@ export default function FarmerPage() {
   }, [phase]);
 
   const book = useCallback(
-    (key: KeyAction) => {
+    (c: Choice) => {
       if (!session) return Promise.reject(new Error('no session'));
-      return api.bookKey({ sessionId: session.sessionId, key, lang });
+      return api.bookKey({ sessionId: session.sessionId, key: c.key, ...(c.machine ? { machine: c.machine } : {}), lang });
     },
     [session, lang],
   );
 
   // the call reads back each step, like a real phone menu
-  const onChoose = useCallback((key: KeyAction) => {
+  const onMachineMenu = useCallback(() => {
     stop();
-    speakText(t(CONFIRM_KEY[key]), lang);
+    speakText(t('farmer.machinePrompt'), lang);
+  }, [lang, stop, t]);
+  const onChoose = useCallback((c: Choice) => {
+    stop();
+    speakText(t(confirmLine(c)), lang);
   }, [lang, stop, t]);
   const onBack = useCallback(() => speakText(t('farmer.backNote'), lang), [lang, t]);
-  const onConfirmed = useCallback((key: KeyAction, _r: BookingReceipt) => {
+  // *: at the menu the whole call message plays again; in a step, that step's question is repeated
+  const onRepeat = useCallback((step: Step, c?: Choice) => {
+    if (step === 'menu') { replay(); return; }
     stop();
-    speakText(t(DONE_KEY[key]), lang);
+    speakText(t(step === 'machine' || !c ? 'farmer.machinePrompt' : confirmLine(c)), lang);
+  }, [lang, replay, stop, t]);
+  const onConfirmed = useCallback((c: Choice, _r: BookingReceipt) => {
+    stop();
+    speakText(t(DONE_KEY[c.key]), lang);
   }, [lang, stop, t]);
 
   function pickUp() {
@@ -130,7 +143,7 @@ export default function FarmerPage() {
                       {playing ? t('farmer.pause') : ended ? t('farmer.replay') : t('farmer.play')}
                     </button>
 
-                    <KeypadPanel book={book} onTone={(k) => playDtmf(k)} onChoose={onChoose} onBack={onBack} onConfirmed={onConfirmed} prices={s.prices} />
+                    <KeypadPanel book={book} onTone={(k) => playDtmf(k)} onMachineMenu={onMachineMenu} onChoose={onChoose} onBack={onBack} onRepeat={onRepeat} onConfirmed={onConfirmed} prices={s.prices} />
 
 
                     <button type="button" className="mx-auto mt-1 flex flex-col items-center gap-1 text-base font-semibold" onClick={hangUp}>

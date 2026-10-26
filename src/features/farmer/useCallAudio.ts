@@ -59,5 +59,13 @@ export function useCallAudio(session: CallSession | null, live: boolean) {
   const stop = useCallback(() => { current.current?.pause(); }, []);
   const pause = stop;
 
-  return { audio, line, playing, ended, voiceMissing, answer, toggle, stop, pause };
+  /** Play the whole call message again from the first line (keypad *). */
+  const replay = useCallback(() => {
+    const a = current.current;
+    if (!a) return;
+    setEnded(false);
+    a.replay();
+  }, []);
+
+  return { audio, line, playing, ended, voiceMissing, answer, toggle, stop, pause, replay };
 }

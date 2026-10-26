@@ -18,7 +18,7 @@ import httpx
 
 from domain.config import load_yaml
 
-DTMF_KEYS = ("0", "1", "2", "9")          # menu 1/2/9, then 1 = confirm, 0 = back (ADR-09)
+DTMF_KEYS = ("0", "1", "2", "9", "*")     # menu 1/2/9, machine 1/2, then 1 = confirm, 0 = back; * repeats (ADR-09)
 _CFG = load_yaml("telephony.yaml")
 FAILURES_BEFORE_FAILOVER = int(_CFG["health_check"]["failures_before_failover"])
 HEALTH_INTERVAL_S = int(_CFG["health_check"]["interval_s"])

@@ -184,10 +184,14 @@ export interface CallSession {
   prices: { superSeederPerAcre: number | null; strawPerTonne: number | null };
 }
 export type KeyAction = '1' | '2' | '9';
+/** Machine picked after menu key 1 on the phone: 1 Super Seeder, 2 Happy Seeder. */
+export type SeederType = Extract<MachineType, 'super_seeder' | 'happy_seeder'>;
 /** Sent only after the farmer confirms the choice with 1 (0 goes back on the phone and sends nothing). */
 export interface BookingRequest {
   sessionId: string;
   key: KeyAction;
+  /** key 1 only; defaults to the Super Seeder */
+  machine?: SeederType;
   lang: Lang;
 }
 export interface BookingReceipt {

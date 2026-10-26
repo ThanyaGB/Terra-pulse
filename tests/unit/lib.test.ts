@@ -153,8 +153,8 @@ describe('i18n', () => {
     expect(detectLang([])).toBe('en');
   });
   it('interpolates variables and falls back to English for untranslated keys', () => {
-    expect(translate('en', 'farmer.key1.sub', { price: 750 })).toBe('₹750 per acre');
-    expect(translate('pa', 'farmer.key1.sub', { price: 750 })).toBe('₹750 ਪ੍ਰਤੀ ਏਕੜ');
+    expect(translate('en', 'farmer.mSuper.sub', { price: 750 })).toBe('₹750 per acre');
+    expect(translate('pa', 'farmer.mSuper.sub', { price: 750 })).toBe('₹750 ਪ੍ਰਤੀ ਏਕੜ');
     expect(translate('pa', 'cz.install.title')).toBe(translate('en', 'cz.install.title'));
   });
   it('the farmer interface is fully translated into Punjabi and Hindi', async () => {

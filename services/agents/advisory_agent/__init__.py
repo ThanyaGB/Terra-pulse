@@ -65,11 +65,22 @@ def render_script(lang: str, name: str, days_to_harvest: int, cfg: dict[str, Any
 
 
 def keypad_prompt(lang: str, choice: str | None = None, cfg: dict[str, Any] | None = None) -> str:
-    """Second keypad step (ADR-09): the confirm line for a menu choice (1, 2 or 9), or the back-to-menu line when choice is None."""
+    """Confirm step (ADR-09): the confirm line for a choice (super_seeder, happy_seeder, 2 or 9), or the back-to-menu line
+    when choice is None."""
     cfg = cfg or load_scripts_cfg()
     table = cfg["confirm"] if choice is not None else cfg["back_to_menu"]
     by_lang = table.get(lang) or table["en"]
-    text = str(by_lang[choice] if choice is not None else by_lang)
+    return _checked(str(by_lang[choice] if choice is not None else by_lang), lang, cfg)
+
+
+def machine_menu_prompt(lang: str, cfg: dict[str, Any] | None = None) -> str:
+    """After menu 1: 1 for the Super Seeder, 2 for the Happy Seeder, 0 to go back."""
+    cfg = cfg or load_scripts_cfg()
+    table = cfg["machine_menu"]
+    return _checked(str(table.get(lang) or table["en"]), lang, cfg)
+
+
+def _checked(text: str, lang: str, cfg: dict[str, Any]) -> str:
     bad = blocked_words_found(text, lang, cfg)
     if bad:
         raise ValueError(f"punitive wording in {lang} keypad prompt: {bad}")

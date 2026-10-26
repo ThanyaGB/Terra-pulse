@@ -183,18 +183,22 @@ export function createLiveApi(baseUrl: string, client: Client = createClient(bas
       };
     },
     /**
-     * The backend keypad has two steps, like the phone line (ADR-09): the menu key (1, 2 or 9) only asks for confirmation,
-     * and the confirming 1 books. The screen runs both steps itself (0 = back never leaves the phone), so once the farmer
-     * has confirmed on screen this sends the choice and then the confirming 1.
+     * The backend keypad works like the phone line (ADR-09): the menu key (1, 2 or 9) only asks for confirmation (after 1 the
+     * farmer first picks the machine: 1 Super Seeder, 2 Happy Seeder), and the confirming 1 books. The screen runs these steps
+     * itself (0 = back never leaves the phone), so once the farmer has confirmed on screen this replays the keys in order.
      */
     async bookKey(req: BookingRequest): Promise<BookingReceipt> {
       const parcel = sessions.get(req.sessionId);
       if (!parcel) throw new ApiError('Call session expired', 410);
-      type KeyReply = { key: BookingReceipt['key']; status: BookingReceipt['status'] | 'awaiting_confirmation'; reference_id?: string; slot?: BookingReceipt['slot'] };
-      const step1 = await post<KeyReply>('/calls/keypress', 'farmer', { parcel_id: parcel, key: req.key, lang: req.lang });
+      type KeyReply = { key: BookingReceipt['key']; status: BookingReceipt['status'] | 'awaiting_confirmation' | 'choose_machine'; reference_id?: string; slot?: BookingReceipt['slot'] };
+      let step1 = await post<KeyReply>('/calls/keypress', 'farmer', { parcel_id: parcel, key: req.key, lang: req.lang });
+      if (step1.status === 'choose_machine') {
+        const machineKey = req.machine === 'happy_seeder' ? '2' : '1';
+        step1 = await post<KeyReply>('/calls/keypress', 'farmer', { parcel_id: parcel, key: machineKey, lang: req.lang });
+      }
       if (step1.status !== 'awaiting_confirmation') throw new ApiError('Unexpected keypad state', 409);
       const r = await post<KeyReply>('/calls/keypress', 'farmer', { parcel_id: parcel, key: '1', lang: req.lang });
-      if (r.status === 'awaiting_confirmation' || !r.reference_id) throw new ApiError('Booking was not confirmed', 409);
+      if (r.status === 'awaiting_confirmation' || r.status === 'choose_machine' || !r.reference_id) throw new ApiError('Booking was not confirmed', 409);
       return { referenceId: r.reference_id, key: r.key, status: r.status, slot: r.slot ?? null };
     },
 

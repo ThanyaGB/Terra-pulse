@@ -16,7 +16,9 @@ from integrations.ratelimit import RateLimitExceeded
 from integrations.telephony import CallRecord, OutsideCallingHours, TelephonyAdapter, calling_window, within_calling_hours
 
 MENU_KEYS = ("1", "2", "9")
-CONFIRM_KEY, BACK_KEY = "1", "0"
+MACHINE_KEYS = {"1": "super_seeder", "2": "happy_seeder"}   # after menu 1: which machine
+CONFIRM_KEY, BACK_KEY, REPEAT_KEY = "1", "0", "*"
+MACHINE_STEP = "machine"                                     # pending value while the farmer picks a machine
 INTENTS = {"1": "book_machine", "2": "collect_straw", "9": "talk_to_fpo"}
 
 
@@ -33,7 +35,9 @@ class Ops:
         self.audio = audio
         self.calls: dict[str, dict[str, Any]] = {}
         self.by_parcel: dict[str, list[str]] = {}
-        self.pending: dict[str, str] = {}      # parcel_id -> menu choice (1, 2, 9) waiting for 1 = confirm or 0 = back
+        # parcel_id -> keypad step: "machine" (choosing a machine after 1), or the choice waiting for 1 = confirm / 0 = back
+        # ("super_seeder", "happy_seeder", "2", "9"). No entry means the farmer is at the menu.
+        self.pending: dict[str, str] = {}
 
     # ---- helpers ----
     def parcel(self, parcel_id: str) -> Parcel:
@@ -90,35 +94,59 @@ class Ops:
 
     # ---- keypad (IVR / simulator) ----
     async def handle_key(self, parcel_id: str, key: str, via_call: str | None = None, actor: str = "ivr", lang: str = "pa") -> dict[str, Any]:
-        """Two keypad steps (ADR-09). Step 1, the menu: 1 machine, 2 straw pickup, 9 talk to an FPO worker. Nothing happens yet;
-        the farmer hears what they chose. Step 2: 1 confirms and only then is the booking, pickup or FPO request made; 0 goes back."""
-        from agents.advisory_agent import keypad_prompt
+        """Keypad steps (ADR-09). The menu: 1 machine, 2 straw pickup, 9 talk to an FPO worker. After 1 the farmer picks the
+        machine: 1 Super Seeder, 2 Happy Seeder (0 goes back). Nothing happens yet; the farmer hears what they chose. Then 1
+        confirms and only then is the booking, pickup or FPO request made; 0 goes back to the menu. * at any step repeats what
+        the farmer is being asked (the whole call message at the menu)."""
+        from agents.advisory_agent import keypad_prompt, machine_menu_prompt
         self.parcel(parcel_id)   # 404 for an unknown parcel
         call = self.calls.get(via_call) if via_call else None
         if call is not None:
             lang = call.get("lang", lang)
         choice = self.pending.get(parcel_id)
-        if choice is None and key not in MENU_KEYS:
-            raise ProblemError(400, "Unknown key", "Press 1, 2 or 9.")
-        if choice is not None and key not in (CONFIRM_KEY, BACK_KEY):
-            raise ProblemError(400, "Unknown key", "Press 1 to confirm or 0 to go back.")
-        self.audit(actor, "call.keypress", {"parcel_id": parcel_id, "key": key, "step": "menu" if choice is None else "confirm"})
+        step = "menu" if choice is None else "machine" if choice == MACHINE_STEP else "confirm"
+        allowed = {"menu": MENU_KEYS, "machine": (*MACHINE_KEYS, BACK_KEY), "confirm": (CONFIRM_KEY, BACK_KEY)}[step]
+        if key != REPEAT_KEY and key not in allowed:
+            hint = {"menu": "Press 1, 2 or 9", "machine": "Press 1 for the Super Seeder, 2 for the Happy Seeder, or 0 to go back",
+                    "confirm": "Press 1 to confirm or 0 to go back"}[step]
+            raise ProblemError(400, "Unknown key", f"{hint}. Press * to hear the message again.")
+        self.audit(actor, "call.keypress", {"parcel_id": parcel_id, "key": key, "step": step})
         if call is not None:
             call["keys"].append(key)
-        if choice is None:                                     # step 1: remember the choice and ask for confirmation
+        if key == REPEAT_KEY:                                  # * repeats; the step does not change
+            if step == "menu":
+                return {"key": key, "status": "repeat", "step": step, "prompt": "call_script", "lines": self.script_lines(parcel_id, lang)}
+            if step == "machine":
+                return {"key": key, "status": "repeat", "step": step, "prompt": "machine_menu", "prompt_text": machine_menu_prompt(lang)}
+            return {"key": key, "status": "repeat", "step": step, "prompt": f"confirm_{choice}", "prompt_text": keypad_prompt(lang, choice)}
+        if key == BACK_KEY:                                    # 0 goes back to the menu, nothing was booked
+            del self.pending[parcel_id]
+            if call is not None:
+                call["intent"] = None
+            back_key = "1" if step == "machine" or choice in MACHINE_KEYS.values() else choice
+            return {"key": back_key, "status": "cancelled", "prompt": "back_to_menu", "prompt_text": keypad_prompt(lang)}
+        if step == "menu" and key == "1":                      # menu 1: which machine?
+            self.pending[parcel_id] = MACHINE_STEP
+            if call is not None:
+                call["intent"] = INTENTS[key]
+            return {"key": key, "status": "choose_machine", "prompt": "machine_menu", "prompt_text": machine_menu_prompt(lang)}
+        if step == "machine":                                  # machine picked: ask for confirmation
+            machine = MACHINE_KEYS[key]
+            self.pending[parcel_id] = machine
+            return {"key": "1", "machine_type": machine, "status": "awaiting_confirmation", "prompt": f"confirm_{machine}",
+                    "prompt_text": keypad_prompt(lang, machine)}
+        if step == "menu":                                     # menu 2 or 9: ask for confirmation
             self.pending[parcel_id] = key
             if call is not None:
                 call["intent"] = INTENTS[key]
             return {"key": key, "status": "awaiting_confirmation", "prompt": f"confirm_{key}", "prompt_text": keypad_prompt(lang, key)}
-        del self.pending[parcel_id]
-        if key == BACK_KEY:                                    # step 2: 0 goes back to the menu, nothing was booked
-            if call is not None:
-                call["intent"] = None
-            return {"key": choice, "status": "cancelled", "prompt": "back_to_menu", "prompt_text": keypad_prompt(lang)}
-        if choice == "1":
-            booking = await self.create_booking(parcel_id, None, actor)
+        del self.pending[parcel_id]                            # the confirming 1
+        if choice in MACHINE_KEYS.values():
+            booking = await self.create_booking(parcel_id, None, actor, machine_type=choice)
             booking = self.confirm_booking(booking["booking_id"], actor)
-            return {"key": choice, "status": "confirmed", "reference_id": booking["booking_id"], "booking": booking}
+            # one open booking per parcel: if one already existed, report the machine actually booked
+            return {"key": "1", "machine_type": booking["machinery"]["type"], "status": "confirmed", "reference_id": booking["booking_id"],
+                    "booking": booking}
         if choice == "2":
             col = self.request_collection(parcel_id, actor)
             return {"key": choice, "status": "confirmed", "reference_id": col["request_id"], "collection": col}

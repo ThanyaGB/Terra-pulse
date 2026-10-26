@@ -217,7 +217,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Keypad press from the simulator or IVR: 1/2/9, then 1 to confirm or 0 to go back (extension) */
+        /** Keypad press from the simulator or IVR: 1/2/9 (1 then 1 Super Seeder or 2 Happy Seeder), then 1 to confirm or 0 to go back; * repeats (extension) */
         post: operations["calls_keypress_v1_calls_keypress_post"];
         delete?: never;
         options?: never;
@@ -764,7 +764,7 @@ export interface components {
              * Key
              * @enum {string}
              */
-            key: "0" | "1" | "2" | "9";
+            key: "0" | "1" | "2" | "9" | "*";
             /**
              * Lang
              * @default pa

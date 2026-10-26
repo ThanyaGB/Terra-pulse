@@ -257,7 +257,8 @@
               "0",
               "1",
               "2",
-              "9"
+              "9",
+              "*"
             ],
             "title": "Key",
             "type": "string"
@@ -940,7 +941,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Keypad press from the simulator or IVR: 1/2/9, then 1 to confirm or 0 to go back (extension)",
+        "summary": "Keypad press from the simulator or IVR: 1/2/9 (1 then 1 Super Seeder or 2 Happy Seeder), then 1 to confirm or 0 to go back; * repeats (extension)",
         "tags": [
           "farmer"
         ]

@@ -159,6 +159,10 @@ export function createMockApi(): VayuApi {
     })),
     bookKey: (req: BookingRequest) => gate(false, (): BookingReceipt => {
       if (!['1', '2', '9'].includes(req.key)) throw new ApiError('Unknown key', 400);
+      if (req.key === '1') {
+        if (req.machine !== 'super_seeder' && req.machine !== 'happy_seeder') throw new ApiError('Choose the Super Seeder or the Happy Seeder', 400);
+        return { referenceId: id('BK'), key: req.key, machine: req.machine, status: 'confirmed' };
+      }
       return { referenceId: id('BK'), key: req.key, status: req.key === '9' ? 'connecting' : 'confirmed' };
     }),
 

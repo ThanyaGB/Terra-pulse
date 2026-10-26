@@ -44,7 +44,7 @@ class CollectionCreate(BaseModel):
 
 class Keypress(BaseModel):
     parcel_id: str
-    key: Literal["0", "1", "2", "9"]                 # menu: 1, 2, 9; then 1 confirms and 0 goes back
+    key: Literal["0", "1", "2", "9", "*"]            # menu 1, 2, 9; machine 1 or 2; then 1 confirms, 0 goes back; * repeats
     lang: Literal["pa", "hi", "en"] = "pa"
 
 
@@ -174,7 +174,7 @@ async def audio_clip(request: Request, key: str, lang: Literal["pa", "hi", "en"]
     return Response(path.read_bytes(), media_type="audio/wav")
 
 
-@router.post("/calls/keypress", summary="Keypad press from the simulator or IVR: 1/2/9, then 1 to confirm or 0 to go back (extension)", tags=["farmer"])
+@router.post("/calls/keypress", summary="Keypad press from the simulator or IVR: 1/2/9 (1 then 1 Super Seeder or 2 Happy Seeder), then 1 to confirm or 0 to go back; * repeats (extension)", tags=["farmer"])
 async def calls_keypress(request: Request, body: Keypress, who: Principal = Depends(require_roles("farmer"))) -> dict[str, Any]:
     return await ops(request).handle_key(body.parcel_id, body.key, actor=who.sub, lang=body.lang)
 
