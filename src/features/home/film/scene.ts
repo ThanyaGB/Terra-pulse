@@ -11,7 +11,7 @@ export interface Sprites {
 export interface View {
   cv: HTMLCanvasElement; ctx: CanvasRenderingContext2D; o: { fx?: boolean; title?: boolean; fixedPan?: number };
   W: number; H: number; dpr: number; tier: number; pend: number;
-  flames: Flame[]; smoke: Smoke[]; embers: Flame[]; title: TitlePt[] | null; titleStep: number;
+  flames: Flame[]; smoke: Smoke[]; embers: Flame[]; title: TitlePt[] | null; titleStep: number; titleImg?: HTMLCanvasElement;
   mx: number | null; my: number; reduce?: boolean;
 }
 export function makeView(cv: HTMLCanvasElement | null, o: View['o']): View | null {
@@ -139,8 +139,8 @@ export function buildSprites(): Sprites {
   var S = { clouds: tints.map(function (tn) { var a: HTMLCanvasElement[] = []; for (var k = 0; k < 4; k++) a.push(cloudSprite(1009 + k * 97, tn)); return a; }) } as unknown as Sprites;
   S.puff = puffSprite();
   S.flame = radial(64, [[0, 'rgba(255,251,226,1)'], [0.22, 'rgba(255,214,120,.95)'], [0.5, 'rgba(255,138,61,.55)'], [1, 'rgba(180,83,9,0)']]);
-  S.dot = radial(16, [[0, 'rgba(8,24,46,1)'], [0.5, 'rgba(11,45,80,.96)'], [1, 'rgba(11,45,80,0)']]);
-  S.shade = radial(16, [[0, 'rgba(255,255,255,.85)'], [1, 'rgba(255,255,255,0)']]);
+  S.dot = radial(32, [[0, 'rgba(8,24,46,1)'], [0.78, 'rgba(11,45,80,1)'], [0.9, 'rgba(11,45,80,.6)'], [1, 'rgba(11,45,80,0)']]);
+  S.shade = radial(16, [[0, 'rgba(255,255,255,.6)'], [1, 'rgba(255,255,255,0)']]);
   S.ember = radial(16, [[0, 'rgba(255,240,200,1)'], [0.4, 'rgba(255,150,70,.85)'], [1, 'rgba(255,110,40,0)']]);
   ['green', 'gold', 'stub', 'char'].forEach(function (k, i) { (S as unknown as Record<string, HTMLCanvasElement[]>)[k] = [tuftSprite(k, 31 + i * 11), tuftSprite(k, 57 + i * 13), tuftSprite(k, 83 + i * 17)]; });
   S.bale = baleSprite();
@@ -373,6 +373,11 @@ export function buildTitle(v: View): void {
   x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.font = '400 ' + fs + 'px "Bebas Neue", Impact, "Arial Narrow", sans-serif';
   x.fillText('VAYU.', W / 2, cy - fs * 0.44); x.fillText('SWACHH.', W / 2, cy + fs * 0.44);
+  // the same words as a solid wordmark at full screen resolution: the particles settle into it, so the title ends sharp
+  var d = v.dpr || 1, img = mk(Math.max(1, Math.ceil(W * d)), Math.max(1, Math.ceil(H * d))), ix = img.getContext('2d')!;
+  ix.scale(d, d); ix.fillStyle = '#0B2D50'; ix.textAlign = 'center'; ix.textBaseline = 'middle'; ix.font = x.font;
+  ix.fillText('VAYU.', W / 2, cy - fs * 0.44); ix.fillText('SWACHH.', W / 2, cy + fs * 0.44);
+  v.titleImg = img;
   var data = x.getImageData(0, 0, c.width, c.height).data, pts: number[][] = [], step = Math.max(2, Math.round(fs / 44));
   for (var yy = 0; yy < c.height; yy += step) for (var xx = 0; xx < c.width; xx += step) if (data[(yy * c.width + xx) * 4 + 3] > 128) pts.push([xx, yy]);
   var maxN = (W < 768 ? QUALITY.titleMobile : QUALITY.titleDesktop) / (v.tier >= 2 ? 2 : 1);
@@ -384,17 +389,29 @@ function drawTitle(v: View, P: number, t: number): void {
   if (!v.title) return;
   var ta = sm(0.885, 0.92, P); if (ta <= 0) return;
   var tt = v.reduce ? 1 : sm(0.9, 0.985, P), ctx = v.ctx, S = SPR as Sprites, base = Math.max(2.8, v.titleStep * 1.5);
+  // solid: how far the letters have firmed up into the crisp wordmark (dots arrive first, then the letters solidify)
+  var solid = v.reduce ? 1 : sm(0.55, 0.95, tt);
   ctx.setTransform(v.dpr, 0, 0, v.dpr, 0, 0); ctx.globalCompositeOperation = 'source-over';
   for (var pass = 0; pass < 2; pass++) {
+    if (pass === 1 && v.titleImg && solid > 0) {
+      // crisp wordmark with a soft white glow behind it, drawn 1:1 with device pixels
+      ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalAlpha = ta * solid; ctx.shadowColor = 'rgba(255,255,255,0.8)'; ctx.shadowBlur = 22 * v.dpr;
+      ctx.drawImage(v.titleImg, 0, 0);
+      ctx.shadowBlur = 0; ctx.drawImage(v.titleImg, 0, 0);
+      ctx.restore();
+    }
     for (var i = 0; i < v.title.length; i++) {
       var p = v.title[i], k = clamp01((tt - p.dl) / 0.6), e = 1 - Math.pow(1 - k, 3), wob = 1 - e;
       var x = lerp(p.sx + Math.sin(t * 0.4 + p.ph) * 40 * wob, p.tx, e), y = lerp(p.sy + Math.cos(t * 0.3 + p.ph) * 24 * wob, p.ty, e);
       if (pass === 1) {
         if (v.mx != null) { var dx = x + p.ox - v.mx, dy = y + p.oy - v.my, d2 = dx * dx + dy * dy; if (d2 < 14400 && d2 > 1) { var dd = Math.sqrt(d2), fo = (120 - dd) / 120 * 6; p.ox += dx / dd * fo; p.oy += dy / dd * fo; } }
         p.ox *= 0.9; p.oy *= 0.9;
-        var sz = lerp(base * 1.8, base, e); ctx.globalAlpha = ta * lerp(0.45, 1, e); ctx.drawImage(S.dot, x + p.ox - sz / 2, y + p.oy - sz / 2, sz, sz);
-      } else if (e > 0.5) {
-        var sh = base * 2.6; ctx.globalAlpha = ta * (e - 0.5) * 1.2; ctx.drawImage(S.shade, x + p.ox - sh / 2, y + p.oy - sh / 2, sh, sh);
+        // settled dots melt into the solid letters; dots pushed away by the cursor stay visible
+        var off = Math.min(1, (Math.abs(p.ox) + Math.abs(p.oy)) / 6);
+        var sz = lerp(base * 1.8, base, e); ctx.globalAlpha = ta * lerp(0.45, 1, e) * (1 - solid * (1 - off)); ctx.drawImage(S.dot, x + p.ox - sz / 2, y + p.oy - sz / 2, sz, sz);
+      } else if (e > 0.5 && solid < 1) {
+        var sh = base * 2.2; ctx.globalAlpha = ta * (e - 0.5) * 1.2 * (1 - solid); ctx.drawImage(S.shade, x + p.ox - sh / 2, y + p.oy - sh / 2, sh, sh);
       }
     }
   }
