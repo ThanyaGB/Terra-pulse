@@ -143,15 +143,13 @@ function farmerSprite(hat: string): HTMLCanvasElement {
 const CANOPY_W = 512, CANOPY_H = 72;
 function canopyStrip(kind: CanopyKind, seed: number): HTMLCanvasElement {
   var c = mk(CANOPY_W, CANOPY_H), x = c.getContext('2d') as CanvasRenderingContext2D, r = rng(seed);
-  var base: RGB = kind === 'green' ? [10, 70, 46] : kind === 'gold' ? [128, 90, 26] : [150, 112, 60];
-  var bg = x.createLinearGradient(0, CANOPY_H * 0.45, 0, CANOPY_H);
-  bg.addColorStop(0, rgba(base, 0)); bg.addColorStop(0.55, rgba(base, 0.9)); bg.addColorStop(1, rgba(mixc(base, [0, 0, 0], 0.3)));
-  x.fillStyle = bg; x.fillRect(0, 0, CANOPY_W, CANOPY_H);
+  // blades only (palettes match the near tufts); the solid under-canopy is drawn per row so it can
+  // fade in as the field closes over the water instead of being there from day 0
   x.lineCap = 'round';
   var n = kind === 'stub' ? 220 : 300;
   for (var i = 0; i < n; i++) {
     var bx = r() * CANOPY_W, lean = (r() - 0.5) * 0.9, L = kind === 'stub' ? 8 + r() * 10 : 30 + r() * 38;
-    var col: RGB = kind === 'green' ? mixc([14, 100, 62], [124, 236, 170], r()) : kind === 'gold' ? mixc([160, 112, 28], [250, 210, 104], r()) : mixc([176, 130, 66], [238, 204, 130], r());
+    var col: RGB = kind === 'green' ? mixc([12, 86, 56], [96, 204, 148], r()) : kind === 'gold' ? mixc([160, 112, 28], [250, 210, 104], r()) : mixc([176, 130, 66], [238, 204, 130], r());
     x.strokeStyle = rgba(col); x.lineWidth = 1.6 + r() * 1.4;
     for (var wrap = -1; wrap <= 1; wrap++) {
       var ox = bx + wrap * CANOPY_W;
@@ -308,19 +306,26 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
     // far field: tileable canopy strips all the way to the horizon, so the field reads as full,
     // not just the front rows. They grow, sway in rolling wind waves, ripen and get cut like the near tufts.
     var gF = sm(0.215, 0.55, P), plantHF = lerp(0.2, 1, gF), goldF = sm(0.49, 0.585, P);
-    var greenA = lerp(0.12, 1, sm(0.23, 0.4, P)); // sparse while the paddy is flooded, so the water still shows
+    // far plants appear with the near ones (same density ramp); the solid under-canopy follows the
+    // field closing over the water (water clears 0.25–0.37)
+    var greenA = lerp(0.55, 1, sm(0.215, 0.3, P)), closeA = sm(0.28, 0.42, P);
+    var underC = mixc(mixc([10, 60, 40], [116, 84, 26], goldF), [140, 104, 56], cut);
     var pats = v.pats || (v.pats = {});
     var pat = function (k: CanopyKind): CanvasPattern | null { if (pats[k] === undefined) pats[k] = ctx.createPattern(S.canopy[k], 'repeat-x'); return pats[k] || null; };
-    var FAR_ROWS = v.tier >= 2 ? 28 : 46;
+    var FAR_ROWS = v.tier >= 2 ? 30 : 50;
     for (var fr = 0; fr < FAR_ROWS; fr++) {
-      var fdd = lerp(0.995, 0.56, fr / (FAR_ROWS - 1)), fy0 = rowY(fdd, hz, H), fs2 = rowS(fdd);
+      var fdd = lerp(0.995, 0.48, fr / (FAR_ROWS - 1)), fy0 = rowY(fdd, hz, H), fs2 = rowS(fdd);
       if (fy0 > H + 4) continue;
       // far crops are drawn a little taller than true scale so their texture survives at a few pixels high
-      var fsc = (H * 0.19 * fs2) / 110, fsy = fsc * plantHF * (1 - cut * 0.7) * 1.6;
+      // true scale where it meets the near plants; only the farthest rows are stretched (taller, coarser)
+      var far = sm(0.62, 0.92, fdd);
+      var fsc = (H * 0.19 * fs2) / 110, fsy = fsc * plantHF * (1 - cut * 0.7) * lerp(1, 1.6, far);
       var fsw = sway * Math.sin(t * 1.3 - fdd * 16 + fr * 0.15) * 0.08 * gF * (1 - cut);
       // horizontal scale is coarser than true scale: distant crop reads as texture, not a flat band
-      var fscX = fsc * 2.6, fox = vpX + hash(fr * 7.77) * CANOPY_W * fscX, u0 = -fox / fscX - 120, uw = W / fscX + 240;
-      var layers: [CanopyKind, number, number][] = [['green', (1 - cut) * greenA, fsy], ['gold', (1 - cut) * goldF, fsy], ['stub', cut, fsc * 1.6]];
+      var fscX = fsc * lerp(1.2, 2.6, far), fox = vpX + hash(fr * 7.77) * CANOPY_W * fscX, u0 = -fox / fscX - 120, uw = W / fscX + 240;
+      var layers: [CanopyKind, number, number][] = [['green', (1 - cut) * greenA, fsy], ['gold', (1 - cut) * goldF, fsy], ['stub', cut, fsc * lerp(1, 1.6, far)]];
+      var underH = CANOPY_H * Math.max(fsy, fsc * 0.6) * 0.5;
+      if (closeA > 0.01) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = closeA * 0.95; ctx.fillStyle = rgba(underC); ctx.fillRect(0, fy0 - underH, W, underH); }
       for (var li2 = 0; li2 < 3; li2++) {
         var Lk = layers[li2]; if (Lk[1] < 0.01) continue;
         var pt = pat(Lk[0]); if (!pt) continue;
@@ -331,13 +336,12 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
         ctx.setTransform(dpr * fscX, 0, shear, dpr * Lk[2], dpr * fox - shear * CANOPY_H, dpr * (fy0 - CANOPY_H * Lk[2]));
         ctx.fillStyle = pt; ctx.fillRect(u0, 0, uw, CANOPY_H);
       }
-      // row rhythm: a sunlit crest on every row and a dark furrow on alternate rows
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      var crestY = fy0 - CANOPY_H * Math.max(fsy, fsc * 0.5) * 0.8, rowA = (1 - burnG) * lerp(0.25, 1, sm(0.26, 0.4, P));
-      ctx.globalAlpha = (0.16 + golden * 0.1) * rowA * lerp(0.4, 1, gF);
-      ctx.fillStyle = rgba(mixc(sunC, [210, 255, 220], 0.4 * (1 - goldF)));
-      ctx.fillRect(0, crestY, W, Math.max(1, fs2 * 6));
-      if (fr % 2 === 0) { ctx.globalAlpha = 0.22 * rowA; ctx.fillStyle = 'rgb(6,30,20)'; ctx.fillRect(0, fy0 - Math.max(1, fs2 * 4), W, Math.max(1, fs2 * 5)); }
+      // row rhythm: a faint shadowed furrow on alternate far rows only (no bright stripes)
+      if (fr % 2 === 0 && far > 0.05) {
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.globalAlpha = 0.12 * far * (1 - burnG) * sm(0.3, 0.45, P);
+        ctx.fillStyle = 'rgb(6,30,20)'; ctx.fillRect(0, fy0 - Math.max(1, fs2 * 4), W, Math.max(1, fs2 * 4));
+      }
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1;
     // crop rows converging on the vanishing point give the far field its depth
@@ -345,10 +349,10 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
     if (farBot > farTop + 2) {
       ctx.save(); ctx.beginPath(); ctx.rect(0, farTop, W, farBot - farTop); ctx.clip();
       ctx.lineWidth = 1;
-      for (var cr = -44; cr <= 44; cr++) {
-        var cwx = cr * 0.06;
-        ctx.strokeStyle = cr % 2 === 0 ? 'rgba(4,28,18,.16)' : rgba(mixc(sunC, [220, 255, 230], 0.5), 0.1);
-        ctx.globalAlpha = (1 - burnG) * lerp(0.2, 1, sm(0.26, 0.4, P));
+      ctx.strokeStyle = 'rgba(4,28,18,.08)';
+      ctx.globalAlpha = (1 - burnG) * sm(0.3, 0.45, P);
+      for (var cr = -22; cr <= 22; cr++) {
+        var cwx = cr * 0.12;
         ctx.beginPath(); ctx.moveTo(vpX, hz); ctx.lineTo(vpX + cwx * W * 1.25 * 1.12, H * 1.12); ctx.stroke();
       }
       ctx.restore(); ctx.globalAlpha = 1;
@@ -364,8 +368,9 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
         for (var kk2 = -9; kk2 < 9; kk2++) {
           var hh = hash(bi2 * 31.7 + kk2 * 5.9); if (hh > 0.72) continue;
           var w1 = kk2 * 0.24 + 0.07, w2 = w1 + 0.24;
-          var tint: RGB = hh < 0.24 ? [150, 236, 180] : hh < 0.48 ? [6, 40, 26] : mixc([110, 200, 140], [246, 196, 80], earlyGold);
-          ctx.fillStyle = rgba(tint, (hh < 0.48 ? 0.13 : 0.1 + earlyGold * 0.28) * patchA);
+          // subtle tone differences only; a few plots run slightly ahead into gold
+          var tint: RGB = hh < 0.24 ? [70, 150, 104] : hh < 0.48 ? [6, 40, 26] : mixc([40, 110, 76], [236, 186, 74], earlyGold);
+          ctx.fillStyle = rgba(tint, (hh < 0.48 ? 0.07 : 0.04 + earlyGold * 0.22) * patchA);
           ctx.beginPath(); ctx.moveTo(bundX(ya, w1), ya); ctx.lineTo(bundX(ya, w2), ya); ctx.lineTo(bundX(yb, w2), yb); ctx.lineTo(bundX(yb, w1), yb); ctx.closePath(); ctx.fill();
         }
       }
@@ -404,7 +409,7 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
       if (y - size > H) continue;
       var spanX = W * 1.25 * s, stepW = Math.max(0.034, minPx / spanX), range = (W * 0.62) / spanX + stepW;
       var j0 = Math.floor(-range / stepW), j1 = Math.ceil(range / stepW), sc = size / 110;
-      var rowFade = 1 - 0.5 * sm(0.53, 0.63, d); // last detailed rows melt into the far canopy, no seam
+      var rowFade = 1 - 0.35 * sm(0.5, 0.63, d); // last detailed rows melt into the far canopy, no seam
       for (var j = j0; j <= j1; j++) {
         var hs = hash(j * 12.9898 + rI * 78.233);
         if (hs > dens) continue;
