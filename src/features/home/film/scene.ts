@@ -139,8 +139,9 @@ export function buildSprites(): Sprites {
   var S = { clouds: tints.map(function (tn) { var a: HTMLCanvasElement[] = []; for (var k = 0; k < 4; k++) a.push(cloudSprite(1009 + k * 97, tn)); return a; }) } as unknown as Sprites;
   S.puff = puffSprite();
   S.flame = radial(64, [[0, 'rgba(255,251,226,1)'], [0.22, 'rgba(255,214,120,.95)'], [0.5, 'rgba(255,138,61,.55)'], [1, 'rgba(180,83,9,0)']]);
-  S.dot = radial(32, [[0, 'rgba(8,24,46,1)'], [0.78, 'rgba(11,45,80,1)'], [0.9, 'rgba(11,45,80,.6)'], [1, 'rgba(11,45,80,0)']]);
-  S.shade = radial(16, [[0, 'rgba(255,255,255,.6)'], [1, 'rgba(255,255,255,0)']]);
+  // title particles: white specks with a small deep-blue halo (they read as bright points against the sky)
+  S.dot = radial(32, [[0, 'rgba(255,255,255,1)'], [0.5, 'rgba(255,255,255,1)'], [0.62, 'rgba(37,99,235,.9)'], [0.82, 'rgba(29,78,216,.45)'], [1, 'rgba(12,42,120,0)']]);
+  S.shade = radial(16, [[0, 'rgba(29,78,216,.5)'], [1, 'rgba(12,42,120,0)']]);
   S.ember = radial(16, [[0, 'rgba(255,240,200,1)'], [0.4, 'rgba(255,150,70,.85)'], [1, 'rgba(255,110,40,0)']]);
   ['green', 'gold', 'stub', 'char'].forEach(function (k, i) { (S as unknown as Record<string, HTMLCanvasElement[]>)[k] = [tuftSprite(k, 31 + i * 11), tuftSprite(k, 57 + i * 13), tuftSprite(k, 83 + i * 17)]; });
   S.bale = baleSprite();
@@ -367,16 +368,24 @@ function stepParticles(v: View, P: number, t: number, dt: number): void {
   if (hzA > 0.01) { var hg = ctx.createLinearGradient(0, 0, W, H); hg.addColorStop(0, 'rgba(84,70,60,' + hzA + ')'); hg.addColorStop(1, 'rgba(58,46,40,' + (hzA * 0.85) + ')'); ctx.fillStyle = hg; ctx.fillRect(0, 0, W, H); }
 }
 
+/** End-title words (no dot after VAYU). */
+const TITLE = ['VAYU', 'SWACHH.'] as const;
 export function buildTitle(v: View): void {
   var W = v.W, H = v.H, c = mk(Math.max(1, Math.ceil(W)), Math.max(1, Math.ceil(H))), x = c.getContext('2d')!;
   var fs = Math.min(W * 0.16, H * 0.26, 240), cy = H * 0.4;
   x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.font = '400 ' + fs + 'px "Bebas Neue", Impact, "Arial Narrow", sans-serif';
-  x.fillText('VAYU.', W / 2, cy - fs * 0.44); x.fillText('SWACHH.', W / 2, cy + fs * 0.44);
-  // the same words as a solid wordmark at full screen resolution: the particles settle into it, so the title ends sharp
-  var d = v.dpr || 1, img = mk(Math.max(1, Math.ceil(W * d)), Math.max(1, Math.ceil(H * d))), ix = img.getContext('2d')!;
-  ix.scale(d, d); ix.fillStyle = '#0B2D50'; ix.textAlign = 'center'; ix.textBaseline = 'middle'; ix.font = x.font;
-  ix.fillText('VAYU.', W / 2, cy - fs * 0.44); ix.fillText('SWACHH.', W / 2, cy + fs * 0.44);
+  x.fillText(TITLE[0], W / 2, cy - fs * 0.44); x.fillText(TITLE[1], W / 2, cy + fs * 0.44);
+  // the same words as a solid wordmark at full screen resolution: the particles settle into it, so the title ends sharp.
+  // White letters with a deep-blue glow, baked in once: wide deep navy, then royal blue, brightest blue right at the edges.
+  var d = v.dpr || 1, cw = Math.max(1, Math.ceil(W * d)), ch = Math.max(1, Math.ceil(H * d));
+  var letters = mk(cw, ch), lx = letters.getContext('2d')!;
+  lx.scale(d, d); lx.fillStyle = '#FFFFFF'; lx.textAlign = 'center'; lx.textBaseline = 'middle'; lx.font = x.font;
+  lx.fillText(TITLE[0], W / 2, cy - fs * 0.44); lx.fillText(TITLE[1], W / 2, cy + fs * 0.44);
+  var img = mk(cw, ch), ix = img.getContext('2d')!, k = fs / 240;
+  var GLOW: [string, number][] = [['rgba(12,42,120,0.6)', 40], ['rgba(29,78,216,0.8)', 16], ['rgba(37,99,235,0.95)', 5]];
+  for (var gi = 0; gi < GLOW.length; gi++) { ix.shadowColor = GLOW[gi][0]; ix.shadowBlur = GLOW[gi][1] * k * d; ix.drawImage(letters, 0, 0); }
+  ix.shadowBlur = 0; ix.shadowColor = 'transparent'; ix.drawImage(letters, 0, 0);
   v.titleImg = img;
   var data = x.getImageData(0, 0, c.width, c.height).data, pts: number[][] = [], step = Math.max(2, Math.round(fs / 44));
   for (var yy = 0; yy < c.height; yy += step) for (var xx = 0; xx < c.width; xx += step) if (data[(yy * c.width + xx) * 4 + 3] > 128) pts.push([xx, yy]);
@@ -394,11 +403,9 @@ function drawTitle(v: View, P: number, t: number): void {
   ctx.setTransform(v.dpr, 0, 0, v.dpr, 0, 0); ctx.globalCompositeOperation = 'source-over';
   for (var pass = 0; pass < 2; pass++) {
     if (pass === 1 && v.titleImg && solid > 0) {
-      // crisp wordmark with a soft white glow behind it, drawn 1:1 with device pixels
+      // crisp white wordmark with its blue glow already baked in, drawn 1:1 with device pixels
       ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.globalAlpha = ta * solid; ctx.shadowColor = 'rgba(255,255,255,0.8)'; ctx.shadowBlur = 22 * v.dpr;
-      ctx.drawImage(v.titleImg, 0, 0);
-      ctx.shadowBlur = 0; ctx.drawImage(v.titleImg, 0, 0);
+      ctx.globalAlpha = ta * solid; ctx.drawImage(v.titleImg, 0, 0);
       ctx.restore();
     }
     for (var i = 0; i < v.title.length; i++) {

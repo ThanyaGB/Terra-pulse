@@ -293,7 +293,7 @@ export default function Landing() {
           </div>
           {noCanvas && (<>
             <div className="lp-cap" aria-hidden="true" style={{ '--a': '.9', '--b': '3', position: 'absolute', left: '0', right: '0', top: '22%', textAlign: 'center' } as CSSProperties}>
-              <div className="lp-disp" style={{ fontSize: 'clamp(92px, 15vw, 232px)', lineHeight: '.84', color: '#0B2D50', textShadow: '0 6px 30px rgba(255,255,255,.7)' }}>VAYU.<br />SWACHH.</div>
+              <div className="lp-disp" style={{ fontSize: 'clamp(92px, 15vw, 232px)', lineHeight: '.84', color: '#FFFFFF', textShadow: '0 0 5px rgba(37,99,235,.95), 0 0 16px rgba(29,78,216,.8), 0 0 40px rgba(12,42,120,.6)' }}>VAYU<br />SWACHH.</div>
             </div>
           </>)}
           <div className="lp-cap lp-fsub" style={{ '--a': '.945', '--b': '3', position: 'absolute', left: '16px', right: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px', textAlign: 'center' } as CSSProperties}>
