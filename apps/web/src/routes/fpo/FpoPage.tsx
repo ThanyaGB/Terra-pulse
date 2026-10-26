@@ -8,6 +8,7 @@ import { DataAttribution } from '@/design-system/DataAttribution';
 import { OfflineBanner } from '@/design-system/OfflineBanner';
 import { PageShell } from '@/design-system/PageShell';
 import { Tag } from '@/design-system/Tile';
+import { ApiModeToggle } from '@/design-system/ApiModeToggle';
 import { useToast } from '@/design-system/Toast';
 import { CallPanel } from './CallPanel';
 import { FarmerTable } from './FarmerTable';
@@ -81,7 +82,7 @@ export default function FpoPage() {
   return (
     <>
       <OfflineBanner />
-      <PageShell code="FPO · SANGRUR DEMONSTRATION CLUSTER" title="Dispatch command screen" aside={<><Tag>14 villages · simulated data</Tag><Link to="/farmer" className="btn btn-ghost !min-h-9">Open farmer call simulator</Link></>}>
+      <PageShell code="FPO · SANGRUR DEMONSTRATION CLUSTER" title="Dispatch command screen" aside={<><Tag>14 villages · simulated data</Tag><ApiModeToggle /><Link to="/farmer" className="btn btn-ghost !min-h-9">Open farmer call simulator</Link></>}>
         <Kpis farmers={farmers} machinery={machinery} />
         <MachineryCards state={machinery} onRetry={machinery.reload} />
         <div className="grid gap-4 lg:grid-cols-12">

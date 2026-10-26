@@ -8,6 +8,7 @@ import { DirectiveBar } from './DirectiveBar';
 import { HealthPanel } from './HealthPanel';
 import { OrdersLog } from './OrdersLog';
 import { PlumePanel } from './PlumePanel';
+import { ApiModeToggle } from '@/design-system/ApiModeToggle';
 import { StatusBar } from './StatusBar';
 
 export default function PolicyPage() {
@@ -18,6 +19,7 @@ export default function PolicyPage() {
       <OfflineBanner />
       <PageShell code="CAQM · MACRO DECISION DASHBOARD" title="Delhi-NCR air quality command view">
         <StatusBar />
+        <div className="flex justify-end"><ApiModeToggle /></div>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <AttributionPanel cellId={cellId} onCellChange={setCellId} />
           <PlumePanel selectedId={cellId} onSelect={setCellId} />
