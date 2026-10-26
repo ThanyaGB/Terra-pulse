@@ -17,7 +17,7 @@ In Plan Mode, Bob engaged in a structured architectural discussion covering:
 - **API contract** — all 18 REST endpoints and the WebSocket channels were designed collaboratively in Plan Mode before any backend code existed.
 - **Implementation task ordering** — Bob broke the work into 62 ordered tasks across 7 phases, each with a concrete acceptance criterion, surfacing dependencies and sequencing risks.
 
-The output of this planning session became [`vayu-swachh-spec.md`](../vayu-swachh-spec.md) — a 730-line single source of truth that governed every subsequent coding decision. Plan Mode was the right tool for this stage because it prioritised thinking and discussion over generating code, allowing the team to stress-test the design before committing to it.
+The output of this planning session became [`vayu-swachh-spec.md`](vayu-swachh-spec.md) — a 730-line single source of truth that governed every subsequent coding decision. Plan Mode was the right tool for this stage because it prioritised thinking and discussion over generating code, allowing the team to stress-test the design before committing to it.
 
 ---
 

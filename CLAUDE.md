@@ -23,7 +23,7 @@ Scripts (root): `npm run build`, `npm run typecheck`, `npm test` (Vitest), `npm 
   - `/`: scroll-story landing (`src/features/home`).
     - The film is a 9000 px section with a sticky stage; `--p` drives three Canvas2D views (`film/scene.ts`).
     - `film/pacing.ts` gives the burning stretch (progress 0.665–0.83) all the extra scroll; other stages are paced for 7200 px.
-    - The end title "VAYU. SWACHH." is particles that settle into a crisp full-resolution wordmark.
+    - The end title "VAYU / SWACHH." (no dot after VAYU) is white specks that settle into a crisp white wordmark with a baked deep-blue glow.
     - Captions are in `content.ts`.
   - `/policy`: dark command-centre dashboard. Issuing GRAP-II shows a banner on `/citizen` and creates 3 work orders on `/ops`.
   - `/fpo`: FPO console: machinery ring gauges, + Truck (+8 t), a straw-supply tile (buyer offtake figures from `src/lib/supply.ts`).
@@ -45,6 +45,6 @@ Scripts (root): `npm run build`, `npm run typecheck`, `npm test` (Vitest), `npm 
 ## Conventions and open items
 
 - Keep demo data clearly labelled as simulated. Hindi and Punjabi copy is machine-drafted and needs native review.
-- README.md is outdated (mentions WhatsApp, the 4-step tour and old setup). Update it when asked.
+- README.md was rewritten on 26 Oct 2026 for the current demo (seven pages, tour order, keypad, buyer desk, Simulated/Live toggle). `ibm_bob_usage.md` sits next to it at the repo root (moved from `docs/`).
 - GitHub CI: `web` and `secrets` pass. `python` may still need test fixes. Deploy jobs need Kubernetes and are expected to fail.
 - A stale Vite "Failed to resolve import" error usually needs `Remove-Item -Recurse -Force node_modules\.vite` and a restart of `npm run dev`.
