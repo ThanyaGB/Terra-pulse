@@ -14,7 +14,7 @@ export default defineConfig({
     launchOptions: { executablePath, args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] },
   },
   projects: [
-    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, testMatch: /(policy|fpo|landing)\.spec\.ts/ },
+    { name: 'desktop', use: { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } }, testMatch: /(policy|fpo|landing|buyer).spec.ts/ },
     { name: 'phone', use: { ...devices['Pixel 5'], viewport: { width: 360, height: 740 } }, testMatch: /(farmer|citizen)\.spec\.ts/ },
   ],
   webServer: {

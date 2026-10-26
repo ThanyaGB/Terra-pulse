@@ -1,6 +1,9 @@
 import type { VayuApi } from './contract';
 import { ApiError } from './errors';
 
+/** The live backend has no straw-supply routes yet. Rejecting (not throwing) keeps the page's error state working. */
+const notImplemented = <T,>(what: string): Promise<T> => Promise.reject(new ApiError(`${what} is not implemented in the live adapter yet`, 501));
+
 /** Thin fetch-based client for the real backend. Paths mirror contract.ts. */
 export function createLiveApi(baseUrl: string): VayuApi {
   const base = baseUrl.replace(/\/$/, '');
@@ -54,6 +57,13 @@ export function createLiveApi(baseUrl: string): VayuApi {
     listWorkOrders: () => request('GET', '/ops/work-orders'),
     acceptWorkOrder: (id) => request('POST', `/ops/work-orders/${enc(id)}/accept`),
     completeWorkOrder: (req) => request('POST', `/ops/work-orders/${enc(req.workOrderId)}/complete`, req),
+
+    listSupplyOffers: () => notImplemented('straw supply'),
+    claimSupplyOffer: () => notImplemented('straw supply'),
+    recordReceipt: () => notImplemented('straw supply'),
+    getVerification: () => notImplemented('straw supply'),
+    listBuyerClaims: () => notImplemented('straw supply'),
+    getSupplySummary: () => notImplemented('straw supply'),
 
     getRealtimeSnapshot: () => request('GET', '/realtime/snapshot'),
   };

@@ -26,7 +26,8 @@ Scripts (root): `npm run build`, `npm run typecheck`, `npm test` (Vitest), `npm 
     - The end title "VAYU. SWACHH." is particles that settle into a crisp full-resolution wordmark.
     - Captions are in `content.ts`.
   - `/policy`: dark command-centre dashboard. Issuing GRAP-II shows a banner on `/citizen` and creates 3 work orders on `/ops`.
-  - `/fpo`: FPO console: machinery ring gauges, + Truck (+8 t), eco-credits (`src/lib/ecocredits.ts`: straw × 1.5 = CO₂e avoided, × 10 = credits; farmer income = straw × ₹1,650/t, shown separately).
+  - `/fpo`: FPO console: machinery ring gauges, + Truck (+8 t), a straw-supply tile (buyer offtake figures from `src/lib/supply.ts`).
+  - `/buyer`: straw buyer desk. Buyers claim open offers (village and parcel group only), record weighbridge receipts, and see platform verification (NASA FIRMS no-fire check, reconciliation). Payment stays held until both pass. Store: `src/lib/supply.ts`, rules: `src/lib/supplyRules.ts`.
   - `/farmer`: phone-call simulator. Full 12-key keypad: menu 1 = machine, 2 = straw pickup, 9 = FPO worker. After 1: 1 = Super Seeder, 2 = Happy Seeder, 0 = back to the menu. Then 1 = confirm, 0 = back. `*` repeats at any step (the whole call message at the menu). Nothing is booked before the confirming 1. No WhatsApp anywhere. Flow logic: `src/features/farmer/keypadFlow.ts`.
   - `/citizen`: PWA with AQI, 24 h forecast "better window", clean commute, snap-and-report.
   - `/ops`: municipal supervisor portal. Accept, then Complete with photo + GPS (demo photo and demo location buttons for laptops).

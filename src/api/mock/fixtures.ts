@@ -1,7 +1,9 @@
 import type {
   AgentStatus, AttributionResponse, BiomassStatus, CitizenArea, CitizenSnapshot, ComplianceResponse, Farmer,
-  GridCell, HealthItem, MachineryStatus, MachineType, PlumeResponse, SourceShare,
+  GridCell, HealthItem, MachineryStatus, MachineType, PlumeResponse, SourceShare, StrawGrade,
 } from '../contract';
+import type { RiskTier } from '@/lib/risk';
+import type { StoredOffer } from '@/lib/supplyRules';
 
 /** All values below are simulated demo data. */
 
@@ -229,3 +231,48 @@ export function citizenSnapshot(areaId: string, now = new Date()): CitizenSnapsh
     updatedAt: now.toISOString(),
   };
 }
+
+/* ---------------- straw supply (buyer-led offtake) ---------------- */
+/** Expected straw per parcel group in the pilot villages, with the fire-risk tier of its parcels. Simulated. */
+const SUPPLY_TABLE: { village: string; tonnes: number; risk: RiskTier }[] = [
+  { village: 'Bhawanigarh', tonnes: 16, risk: 'high' },
+  { village: 'Sunam', tonnes: 14, risk: 'high' },
+  { village: 'Dhuri', tonnes: 20, risk: 'medium' },
+  { village: 'Lehragaga', tonnes: 22, risk: 'critical' },
+  { village: 'Dirba', tonnes: 18, risk: 'high' },
+  { village: 'Moonak', tonnes: 12, risk: 'critical' },
+  { village: 'Longowal', tonnes: 16, risk: 'high' },
+  { village: 'Cheema', tonnes: 10, risk: 'low' },
+  { village: 'Ladda', tonnes: 14, risk: 'medium' },
+  { village: 'Kauhrian', tonnes: 15, risk: 'high' },
+  { village: 'Sherpur', tonnes: 24, risk: 'critical' },
+  { village: 'Andana', tonnes: 9, risk: 'low' },
+  { village: 'Balian', tonnes: 17, risk: 'medium' },
+  { village: 'Ghabdan', tonnes: 13, risk: 'high' },
+];
+
+/** Offers as the store seeds them. Status is derived on read, so the seed carries no status. */
+export function supplyOfferSeed(now = Date.now()): StoredOffer[] {
+  return SUPPLY_TABLE.map((row, i) => {
+    const start = now - 12 * 3_600_000 + (i % 4) * 6 * 3_600_000;
+    return {
+      id: `SO-${String(i + 1).padStart(2, '0')}`,
+      villageId: row.village.toLowerCase(),
+      parcelGroupId: `PG-${row.village.slice(0, 3).toUpperCase()}`,
+      expectedTonnes: row.tonnes,
+      windowStart: new Date(start).toISOString(),
+      windowEnd: new Date(start + 48 * 3_600_000).toISOString(),
+      riskTier: row.risk,
+    };
+  });
+}
+
+/** NASA FIRMS fire detections on the parcel group during its window (simulated). Any detection fails the no-fire check. */
+export const FIRMS_DETECTIONS: Record<string, number> = { lehragaga: 3 };
+
+/** Receipts already on record when the demo opens: one collected, one held by a fire, one disputed. */
+export const SUPPLY_SEED_LOTS: { village: string; claimedTonnes: number; grossKg: number; tareKg: number; grade: StrawGrade; hoursAgo: number }[] = [
+  { village: 'Sunam', claimedTonnes: 14, grossKg: 24300, tareKg: 9800, grade: 'B', hoursAgo: 30 },
+  { village: 'Lehragaga', claimedTonnes: 22, grossKg: 31500, tareKg: 9300, grade: 'A', hoursAgo: 20 },
+  { village: 'Dirba', claimedTonnes: 18, grossKg: 21800, tareKg: 9800, grade: 'C', hoursAgo: 12 },
+];

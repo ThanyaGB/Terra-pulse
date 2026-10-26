@@ -288,6 +288,76 @@ export interface CompletionReceipt {
   duplicate: boolean;
 }
 
+/* ---------- 6. Straw supply, buyer-led offtake (/buyer) ---------- */
+export type SupplyOfferStatus = 'open' | 'claimed' | 'collected' | 'disputed';
+/** Straw a parcel group is expected to release in a window. Buyers see the village and parcel group only, never farmer names or phones. */
+export interface SupplyOffer {
+  id: string;
+  villageId: string;
+  parcelGroupId: string;
+  expectedTonnes: number;
+  windowStart: string;
+  windowEnd: string;
+  riskTier: RiskTier;
+  status: SupplyOfferStatus;
+}
+export interface SupplyOfferFilter {
+  villageIds?: string[];
+  status?: SupplyOfferStatus;
+}
+/** A buyer's claim on part of an offer. `receipt` is filled in once the weighbridge receipt is recorded. */
+export interface BuyerClaim {
+  id: string;
+  offerId: string;
+  buyerId: string;
+  claimedTonnes: number;
+  claimedAt: string;
+  contractId: string;
+  receipt: WeighbridgeReceipt | null;
+}
+export type StrawGrade = 'A' | 'B' | 'C';
+/** What the buyer types at the weighbridge. Verification results are never part of this payload: the platform computes them. */
+export interface ReceiptInput {
+  grossKg: number;
+  tareKg: number;
+  qualityGrade: StrawGrade;
+  /** reference to the weighbridge slip photo (demo placeholder in the prototype) */
+  photoRef: string;
+}
+export interface WeighbridgeReceipt {
+  id: string;
+  claimId: string;
+  grossKg: number;
+  netKg: number;
+  qualityGrade: StrawGrade;
+  photoRef: string;
+  enteredAt: string;
+}
+export interface VerificationResult {
+  offerId: string;
+  /** NASA FIRMS: no fire detected on the parcel group in the collection window */
+  firmsNoFire: 'pass' | 'fail' | 'pending';
+  spotCheck: 'pass' | 'fail' | 'not_selected' | 'pending';
+  /** weighbridge net against the claimed tonnes, within the configured tolerance */
+  reconciliation: 'matched' | 'mismatch' | 'pending';
+  /** released only when reconciliation is matched and firmsNoFire is pass */
+  paymentStatus: 'held' | 'released';
+  /** always the platform: a buyer can never set these results */
+  computedBy: 'platform';
+}
+/** Figures for the FPO tile and the policy status line. Tonnes and rupees are derived from fixtures, never hard-coded in components. */
+export interface SupplySummary {
+  openTonnes: number;
+  claimedTonnes: number;
+  collectedTonnes: number;
+  heldPaymentsInr: number;
+  /** receipts whose payment is still held and whose offer is not in dispute */
+  awaitingVerification: number;
+  /** NASA FIRMS active fire detections in the pilot clusters: a proxy for straw still being burned */
+  burnProxyFires: number;
+  updatedAt: string;
+}
+
 /* ---------- Realtime (WebSocket /ws/v1/stream, polling GET /realtime/snapshot) ---------- */
 export type RealtimeEvent =
   | { type: 'aqi'; areaId: string; areaName: string; aqi: number; pm25: number; ts: string }
@@ -322,6 +392,14 @@ export interface VayuApi {
   listWorkOrders(): Promise<WorkOrder[]>;
   acceptWorkOrder(id: string): Promise<WorkOrder>;
   completeWorkOrder(req: CompletionRequest): Promise<CompletionReceipt>;
+
+  listSupplyOffers(filter?: SupplyOfferFilter): Promise<SupplyOffer[]>;
+  /** Claims `claimedTonnes` from an offer. Rejected if it exceeds the tonnes still remaining. */
+  claimSupplyOffer(offerId: string, claimedTonnes: number): Promise<BuyerClaim>;
+  recordReceipt(claimId: string, payload: ReceiptInput): Promise<WeighbridgeReceipt>;
+  getVerification(offerId: string): Promise<VerificationResult>;
+  listBuyerClaims(buyerId: string): Promise<BuyerClaim[]>;
+  getSupplySummary(villageIds?: string[]): Promise<SupplySummary>;
 
   getRealtimeSnapshot(): Promise<RealtimeEvent[]>;
 }

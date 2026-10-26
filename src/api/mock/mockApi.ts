@@ -1,13 +1,16 @@
 import type {
-  AssignmentReceipt, BookingReceipt, BookingRequest, CallDetails, CallReceipt, CompletionReceipt, CompletionRequest, DirectivePreview, DirectiveReceipt,
-  DirectiveType, Farmer, HealthProfile, Lang, MachineType, MachineryStatus, RealtimeEvent, ReportReceipt, ReportRequest,
-  VayuApi, WorkOrder,
+  AssignmentReceipt, BookingReceipt, BookingRequest, BuyerClaim, CallDetails, CallReceipt, CompletionReceipt, CompletionRequest, DirectivePreview, DirectiveReceipt,
+  DirectiveType, Farmer, HealthProfile, Lang, MachineType, MachineryStatus, ReceiptInput, RealtimeEvent, ReportReceipt, ReportRequest,
+  SupplyOffer, SupplyOfferFilter, SupplySummary, VayuApi, VerificationResult, WeighbridgeReceipt, WorkOrder,
 } from '../contract';
 import { getWorkOrders, saveWorkOrders } from '@/lib/workorders';
+import { getClaims, getOffers, getReceipts, saveClaims, saveReceipts } from '@/lib/supply';
+import { SUPPLY_CONFIG } from '@/lib/supplyConfig';
+import { buildReceipt, claimProblem, offerState, receiptProblem, round2, type ReceiptRecord, type StoredClaim } from '@/lib/supplyRules';
 import { ApiError } from '../errors';
 import { buildAdvice } from './advice';
 import {
-  AGENTS, BIOMASS, CITIZEN_AREAS, COMPLIANCE, MACHINERY, OPERATORS, PLUME, VILLAGES, attributionFor,
+  AGENTS, BIOMASS, CITIZEN_AREAS, COMPLIANCE, FIRMS_DETECTIONS, MACHINERY, OPERATORS, PLUME, VILLAGES, attributionFor,
   citizenSnapshot, healthItems, makeFarmers,
 } from './fixtures';
 import { scriptFor } from './script';
@@ -32,6 +35,59 @@ async function gate<T>(read: boolean, value: () => T, empty?: () => T): Promise<
 }
 
 const id = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
+
+/** Offers with their derived status, optionally limited to some villages and statuses. */
+function listOffers(filter?: SupplyOfferFilter): SupplyOffer[] {
+  const claims = getClaims();
+  const receipts = getReceipts();
+  return getOffers()
+    .filter((o) => !filter?.villageIds || filter.villageIds.includes(o.villageId))
+    .map((o): SupplyOffer => ({ ...o, status: offerState(o, claims, receipts).status }))
+    .filter((o) => !filter?.status || o.status === filter.status);
+}
+
+/** The buyer-facing receipt: the platform's checks stay in the store. */
+function toReceipt(r: ReceiptRecord | undefined): WeighbridgeReceipt | null {
+  if (!r) return null;
+  const { firmsNoFire: _f, spotCheck: _s, reconciliation: _r, ...receipt } = r;
+  return receipt;
+}
+
+/** A buyer's claims with their receipts joined in, newest first. */
+function claimsWithReceipts(buyerId: string): BuyerClaim[] {
+  const receipts = getReceipts();
+  return getClaims()
+    .filter((c) => c.buyerId === buyerId)
+    .map((c): BuyerClaim => ({ ...c, receipt: toReceipt(receipts.find((r) => r.claimId === c.id)) }))
+    .sort((a, b) => b.claimedAt.localeCompare(a.claimedAt));
+}
+
+function supplySummary(villageIds?: string[]): SupplySummary {
+  const claims = getClaims();
+  const receipts = getReceipts();
+  const floor = BIOMASS.floorPriceInrPerTonne;
+  let open = 0, claimed = 0, collected = 0, held = 0, awaiting = 0;
+  for (const o of getOffers().filter((x) => !villageIds || villageIds.includes(x.villageId))) {
+    const s = offerState(o, claims, receipts);
+    if (s.status === 'open' || s.status === 'claimed') open += s.remaining;
+    claimed += s.claims.reduce((n, c) => n + c.claimedTonnes, 0);
+    const netT = s.receipts.reduce((n, r) => n + r.netKg / 1000, 0);
+    collected += netT;
+    if (s.receipts.length > 0 && s.verification.paymentStatus === 'held') {
+      held += netT * floor;
+      if (s.status !== 'disputed') awaiting += s.receipts.length;
+    }
+  }
+  return {
+    openTonnes: round2(open),
+    claimedTonnes: round2(claimed),
+    collectedTonnes: round2(collected),
+    heldPaymentsInr: Math.round(held),
+    awaitingVerification: awaiting,
+    burnProxyFires: PLUME.sources.reduce((n, s) => n + s.fires, 0),
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 const DIRECTIVES: Record<DirectiveType, Omit<DirectivePreview, 'type'>> = {
   grap_ii: {
@@ -205,6 +261,58 @@ export function createMockApi(): VayuApi {
       completionByRequest.set(req.clientRequestId, w.id);
       return { workOrder: next, duplicate: false };
     }),
+
+    listSupplyOffers: (filter) => gate(true, () => listOffers(filter), () => []),
+    claimSupplyOffer: (offerId, claimedTonnes) => gate(false, (): BuyerClaim => {
+      const offer = getOffers().find((o) => o.id === offerId);
+      if (!offer) throw new ApiError('Offer not found', 404);
+      const claims = getClaims();
+      const mine = claims.filter((c) => c.offerId === offerId);
+      const status = offerState(offer, claims, getReceipts()).status;
+      const problem = claimProblem({ ...offer, status }, mine, claimedTonnes);
+      if (problem) throw new ApiError(problem.message, problem.code);
+      const claim: StoredClaim = {
+        id: id('BC'),
+        offerId,
+        buyerId: SUPPLY_CONFIG.buyerId,
+        claimedTonnes: round2(claimedTonnes),
+        claimedAt: new Date().toISOString(),
+        contractId: id('CT'),
+      };
+      saveClaims([...claims, claim]);
+      return { ...claim, receipt: null };
+    }),
+    recordReceipt: (claimId, payload: ReceiptInput) => gate(false, (): WeighbridgeReceipt => {
+      const claim = getClaims().find((c) => c.id === claimId);
+      if (!claim) throw new ApiError('Claim not found', 404);
+      // Only the buyer holding the claim can weigh it in. The checks below are run by the platform, never taken from the payload.
+      if (claim.buyerId !== SUPPLY_CONFIG.buyerId) throw new ApiError('Only the buyer who holds this claim can record its receipt', 403);
+      if (getReceipts().some((r) => r.claimId === claimId)) throw new ApiError('A receipt is already recorded for this claim', 409);
+      const problem = receiptProblem(payload);
+      if (problem) throw new ApiError(problem, 422);
+      const offer = getOffers().find((o) => o.id === claim.offerId);
+      if (!offer) throw new ApiError('Offer not found', 404);
+      const record = buildReceipt({
+        id: id('WR'),
+        claim,
+        input: payload,
+        enteredAt: new Date().toISOString(),
+        firmsDetections: FIRMS_DETECTIONS[offer.villageId] ?? 0,
+        spotChecked: (SUPPLY_CONFIG.spotCheckVillages as readonly string[]).includes(offer.villageId),
+        tolerancePct: SUPPLY_CONFIG.tolerancePct,
+      });
+      saveReceipts([...getReceipts(), record]);
+      return toReceipt(record) as WeighbridgeReceipt;
+    }),
+    getVerification: (offerId) => gate(true, (): VerificationResult => {
+      const offer = getOffers().find((o) => o.id === offerId);
+      if (!offer) throw new ApiError('Offer not found', 404);
+      return offerState(offer, getClaims(), getReceipts()).verification;
+    }),
+    listBuyerClaims: (buyerId) => gate(true, () => claimsWithReceipts(buyerId), () => []),
+    getSupplySummary: (villageIds) => gate(true, () => supplySummary(villageIds), () => ({
+      openTonnes: 0, claimedTonnes: 0, collectedTonnes: 0, heldPaymentsInr: 0, awaitingVerification: 0, burnProxyFires: 0, updatedAt: new Date().toISOString(),
+    })),
 
     getRealtimeSnapshot: async (): Promise<RealtimeEvent[]> => {
       const ts = new Date().toISOString();

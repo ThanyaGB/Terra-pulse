@@ -4,7 +4,6 @@ import { AsyncBoundary } from '@/design/AsyncBoundary';
 import { Tag, Tile } from '@/design/Tile';
 import { formatInr, formatNumber } from '@/lib/format';
 import type { BiomassStatus } from '@/api/contract';
-import { CO2E_T_PER_STRAW_T, CREDITS_PER_CO2E_T, creditsForStraw } from '@/lib/ecocredits';
 
 function tone(pct: number): string {
   return pct >= 90 ? '#B45309' : pct >= 60 ? '#0F6FB8' : '#0B7A53';
@@ -59,30 +58,6 @@ export function BiomassCard({ state, onRetry, extraTrucks, onAddTruck }: { state
             <button type="button" className="btn !min-h-10 self-start !bg-white/15 !text-white" onClick={onAddTruck}>+ Truck (+{TRUCK_TONNES} t)</button>
           </div>
         )}
-      </AsyncBoundary>
-    </Tile>
-  );
-}
-
-export function EcoCreditsTile({ state, extraTrucks }: { state: AsyncState<BiomassStatus>; extraTrucks: number }) {
-  return (
-    <Tile title="Eco-credits" aside={<Tag>Demo rule</Tag>}>
-      <AsyncBoundary state={state} onRetry={() => undefined} what="eco-credits">
-        {(b) => {
-          const tonnes = b.tonnesRemovedToday + extraTrucks * TRUCK_TONNES;
-          const est = creditsForStraw(tonnes);
-          return (
-            <div className="flex flex-col gap-2">
-              <div><span className="mono text-3xl font-bold text-leaf-700" aria-live="polite" data-testid="eco-credits">{formatNumber(est.credits)}</span> <span className="text-sm text-ink-soft">credits today</span></div>
-              <div className="mono rounded-xl bg-air-50 px-3 py-2 text-xs leading-relaxed text-ink-soft">
-                {formatNumber(tonnes, 1)} t straw not burned × {CO2E_T_PER_STRAW_T} = {formatNumber(est.co2eT, 1)} t CO₂e avoided<br />
-                {formatNumber(est.co2eT, 1)} t CO₂e × {CREDITS_PER_CO2E_T} = {formatNumber(est.credits)} credits
-              </div>
-              <div className="text-sm"><span className="font-semibold">Farmer income:</span> straw sold for <span className="mono font-bold text-leaf-700" data-testid="straw-income">{formatInr(Math.round(tonnes * b.floorPriceInrPerTonne))}</span> <span className="text-ink-soft">at {formatInr(b.floorPriceInrPerTonne)}/t</span></div>
-              <p className="m-0 text-xs text-ink-mute">Demo assumptions, the same as on the landing page. India has no official straw-credit scheme yet.</p>
-            </div>
-          );
-        }}
       </AsyncBoundary>
     </Tile>
   );

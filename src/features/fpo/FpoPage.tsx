@@ -1,16 +1,19 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/client';
 import type { Farmer, FarmersResponse, MachineType, MachineryStatus } from '@/api/contract';
 import { useAsync, type AsyncState } from '@/hooks/useAsync';
+import { ApiModeToggle } from '@/design/ApiModeToggle';
 import { OfflineBanner } from '@/design/OfflineBanner';
 import { PageShell } from '@/design/PageShell';
 import { Tag } from '@/design/Tile';
 import { useToast } from '@/design/Toast';
+import { subscribeSupply } from '@/lib/supply';
 import { CallPanel } from './CallPanel';
 import { FarmerTable } from './FarmerTable';
-import { BiomassCard, EcoCreditsTile, MachineryCards } from './MachineryCards';
+import { BiomassCard, MachineryCards } from './MachineryCards';
 import { MACHINE_LABEL } from './machine';
+import { StrawSupplyTile } from './StrawSupplyTile';
 
 function Kpis({ farmers, machinery }: { farmers: AsyncState<FarmersResponse>; machinery: AsyncState<MachineryStatus[]> }) {
   if (farmers.status !== 'success' || machinery.status !== 'success') return null;
@@ -35,6 +38,8 @@ export default function FpoPage() {
   const machinery = useAsync(() => api.getMachinery(), []);
   const biomass = useAsync(() => api.getBiomass(), []);
   const farmers = useAsync(() => api.getFarmers(), []);
+  const supply = useAsync(() => api.getSupplySummary(), []);
+  useEffect(() => subscribeSupply(supply.refresh), [supply.refresh]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [version, setVersion] = useState(0);
@@ -78,12 +83,12 @@ export default function FpoPage() {
   return (
     <>
       <OfflineBanner />
-      <PageShell code="FPO · SANGRUR DEMONSTRATION CLUSTER" title="Dispatch command screen" aside={<><Tag>14 villages · simulated data</Tag><Link to="/farmer" className="btn btn-ghost !min-h-9">Open farmer call simulator</Link></>}>
+      <PageShell code="FPO · SANGRUR DEMONSTRATION CLUSTER" title="Dispatch command screen" aside={<><Tag>14 villages · simulated data</Tag><ApiModeToggle /><Link to="/farmer" className="btn btn-ghost !min-h-9">Open farmer call simulator</Link></>}>
         <Kpis farmers={farmers} machinery={machinery} />
         <MachineryCards state={machinery} onRetry={machinery.reload} />
         <div className="grid gap-4 lg:grid-cols-12">
           <div className="lg:col-span-8"><BiomassCard state={biomass} onRetry={biomass.reload} extraTrucks={extraTrucks} onAddTruck={() => setExtraTrucks((n) => n + 1)} /></div>
-          <div className="lg:col-span-4"><EcoCreditsTile state={biomass} extraTrucks={extraTrucks} /></div>
+          <div className="lg:col-span-4"><StrawSupplyTile state={supply} onRetry={supply.reload} villages={farmers.status === 'success' ? farmers.data.villages : []} /></div>
         </div>
         <div className="grid items-start gap-4 xl:grid-cols-12">
           <div className="xl:col-span-8">

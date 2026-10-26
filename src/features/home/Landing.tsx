@@ -4,7 +4,6 @@ import '@fontsource/bebas-neue/400.css';
 import './landing.css';
 import { prefersReducedMotion } from '@/hooks/useReducedMotion';
 import { tweenNumber } from '@/design/motion';
-import { CO2E_T_PER_STRAW_T, CREDITS_PER_CO2E_T, STRAW_T_PER_ACRE, creditsForAcres } from '@/lib/ecocredits';
 import { createAmbient, type Ambient } from './film/ambient';
 import { BASE_FILM_PX, FILM_PX, slowBurn } from './film/pacing';
 import { SPR, STAGES, STAGE_P, buildSprites, buildTitle, dayAt, drawScene, fitView, makeView, mix, phaseOf, ramp, setSprites, type View } from './film/scene';
@@ -18,8 +17,6 @@ const pad3 = (n: number) => ('00' + n).slice(-3);
  * position: the film section is 9000 px tall (7200 px of story plus a slowed-down burning stretch) with a sticky stage, and `--p` (0..1) on the stage drives both the
  * canvas and the CSS caption overlays. All figures are simulated, as the footer says.
  */
-/** The 6-acre example farm on the eco-credit card (PB-SGR-1142). */
-const DEMO_FARM = { acres: 6, ...creditsForAcres(6) };
 /** Act 4 dispatch map route (700×420 viewBox): machinery station (100,290) → high-risk farm (560,205). Label chips are placed at the same points in %. */
 const DISPATCH_ROUTE = 'M100 290 C 230 230, 400 320, 560 205';
 
@@ -206,6 +203,7 @@ export default function Landing() {
                 <Link to="/citizen"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D3</b>  Citizen &amp; sensitive-groups app</Link>
                 <Link to="/policy"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D4</b>  CAQM decision dashboard</Link>
                 <Link to="/ops"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D5</b>  Municipal supervisor portal</Link>
+                <Link to="/buyer"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D6</b>  Straw buyer desk</Link>
               </div>
             </>)}
           </div>
@@ -734,19 +732,17 @@ export default function Landing() {
               </div>
               <div className="lp-card lp-glass lp-reveal" style={{ padding: '24px', background: 'rgba(255,255,255,.85)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '8px' }}>
-                  <h3 className="lp-pop" style={{ margin: '0', fontSize: '20px' }}>Green eco-credits</h3>
-                  <span className="lp-tag" style={{ color: '#4A6380' }}>Estimation assumptions</span>
+                  <h3 className="lp-pop" style={{ margin: '0', fontSize: '20px' }}>Straw supply</h3>
+                  <span className="lp-tag" style={{ color: '#4A6380' }}>Buyer offtake</span>
                 </div>
+                <p style={{ margin: '0 0 14px', fontSize: '15px', color: '#3B526B' }}>A straw buyer claims an open offer from a village, weighs the delivery in, and is paid only after the satellite fire check and the weighbridge reconciliation both pass.</p>
                 <div className="lp-mono" style={{ fontSize: '13px', lineHeight: '1.9', background: '#F0F7FC', borderRadius: '12px', padding: '12px 14px' }}>
-                  straw t = acres × {STRAW_T_PER_ACRE}<br />
-                  CO₂e avoided t ≈ straw t × {CO2E_T_PER_STRAW_T}<br />
-                  credits = CO₂e t × {CREDITS_PER_CO2E_T}
+                  claim ≤ open tonnes<br />
+                  weighbridge net ≈ claimed tonnes<br />
+                  NASA FIRMS no-fire check → payment released
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '14px', gap: '8px' }}>
-                  <span style={{ fontSize: '14px', color: '#3B526B' }}>{DEMO_FARM.acres} acres → {DEMO_FARM.strawT} t → {DEMO_FARM.co2eT} t CO₂e</span>
-                  <span className="lp-mono" style={{ fontSize: '28px', fontWeight: '700', color: '#0B7A53' }}>+{DEMO_FARM.credits}</span>
-                </div>
-                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#4A6380' }}>Plus the farmer earns about ₹{(DEMO_FARM.strawT * 1650).toLocaleString('en-IN')} selling that straw at ₹1,650/t. Demo assumptions; no official straw-credit scheme exists yet.</p>
+                <Link className="lp-btn lp-btn-g" to="/buyer" style={{ width: '100%', justifyContent: 'center', marginTop: '14px' }}>Open the straw buyer desk</Link>
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#4A6380' }}>Simulated. Buyers see village and parcel group only, never farmer details.</p>
               </div>
               <div className="lp-card lp-reveal" style={{ padding: '24px', background: '#0E8F62', color: '#FFFFFF' }}>
                 <h3 className="lp-pop" style={{ margin: '0 0 6px', fontSize: '20px' }}>And on the street?</h3>
