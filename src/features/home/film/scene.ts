@@ -7,17 +7,12 @@ export interface TitlePt { tx: number; ty: number; sx: number; sy: number; dl: n
 export interface Sprites {
   clouds: HTMLCanvasElement[][]; puff: HTMLCanvasElement; flame: HTMLCanvasElement; dot: HTMLCanvasElement; shade: HTMLCanvasElement; ember: HTMLCanvasElement;
   green: HTMLCanvasElement[]; gold: HTMLCanvasElement[]; stub: HTMLCanvasElement[]; char: HTMLCanvasElement[]; bale: HTMLCanvasElement; farmer: HTMLCanvasElement[];
-  /** tileable canopy strips for the far field, one per crop state */
-  canopy: Record<CanopyKind, HTMLCanvasElement>; grove: HTMLCanvasElement[]; hut: HTMLCanvasElement;
 }
-export type CanopyKind = 'green' | 'gold' | 'stub';
 export interface View {
   cv: HTMLCanvasElement; ctx: CanvasRenderingContext2D; o: { fx?: boolean; title?: boolean; fixedPan?: number };
   W: number; H: number; dpr: number; tier: number; pend: number;
   flames: Flame[]; smoke: Smoke[]; embers: Flame[]; title: TitlePt[] | null; titleStep: number; titleImg?: HTMLCanvasElement;
   mx: number | null; my: number; reduce?: boolean;
-  /** canopy patterns, created lazily per context */
-  pats?: Partial<Record<CanopyKind, CanvasPattern | null>>;
 }
 export function makeView(cv: HTMLCanvasElement | null, o: View['o']): View | null {
   if (!cv) return null;
@@ -139,58 +134,6 @@ function farmerSprite(hat: string): HTMLCanvasElement {
   x.fillStyle = hat; x.beginPath(); x.moveTo(22, 11); x.lineTo(30, 18); x.lineTo(14, 18); x.closePath(); x.fill();
   return c;
 }
-/** A 512×72 strip of crop that tiles horizontally; bottom 72 is the ground line. */
-const CANOPY_W = 512, CANOPY_H = 72;
-function canopyStrip(kind: CanopyKind, seed: number): HTMLCanvasElement {
-  var c = mk(CANOPY_W, CANOPY_H), x = c.getContext('2d') as CanvasRenderingContext2D, r = rng(seed);
-  // blades only (palettes match the near tufts); the solid under-canopy is drawn per row so it can
-  // fade in as the field closes over the water instead of being there from day 0
-  x.lineCap = 'round';
-  var n = kind === 'stub' ? 220 : 300;
-  for (var i = 0; i < n; i++) {
-    var bx = r() * CANOPY_W, lean = (r() - 0.5) * 0.9, L = kind === 'stub' ? 8 + r() * 10 : 30 + r() * 38;
-    var col: RGB = kind === 'green' ? mixc([12, 86, 56], [96, 204, 148], r()) : kind === 'gold' ? mixc([160, 112, 28], [250, 210, 104], r()) : mixc([176, 130, 66], [238, 204, 130], r());
-    x.strokeStyle = rgba(col); x.lineWidth = 1.6 + r() * 1.4;
-    for (var wrap = -1; wrap <= 1; wrap++) {
-      var ox = bx + wrap * CANOPY_W;
-      if (ox < -40 || ox > CANOPY_W + 40) continue;
-      x.beginPath(); x.moveTo(ox, CANOPY_H);
-      if (kind === 'stub') x.lineTo(ox + lean * L * 0.4, CANOPY_H - L);
-      else x.quadraticCurveTo(ox + lean * L * 0.2, CANOPY_H - L * 0.7, ox + lean * L * 0.8, CANOPY_H - L + Math.abs(lean) * 10);
-      x.stroke();
-      if (kind === 'gold' && r() < 0.35) { x.fillStyle = 'rgba(240,188,66,.95)'; x.beginPath(); x.ellipse(ox + lean * L * 0.8, CANOPY_H - L + Math.abs(lean) * 10 + 3, 2.2, 4, lean, 0, 6.2832); x.fill(); }
-    }
-  }
-  return c;
-}
-/** Distant tree clump (or palm) for the far field edges; anchored at bottom centre. */
-function groveSprite(seed: number, palm: boolean): HTMLCanvasElement {
-  var c = mk(160, 120), x = c.getContext('2d') as CanvasRenderingContext2D, r = rng(seed);
-  if (palm) {
-    x.strokeStyle = '#3B4A3A'; x.lineWidth = 4; x.lineCap = 'round';
-    x.beginPath(); x.moveTo(80, 120); x.quadraticCurveTo(74, 70, 86, 28); x.stroke();
-    for (var f = 0; f < 9; f++) {
-      var a = -Math.PI + f / 8 * Math.PI + (r() - 0.5) * 0.2, L = 34 + r() * 18;
-      x.strokeStyle = rgba(mixc([20, 70, 44], [62, 130, 82], r())); x.lineWidth = 5;
-      x.beginPath(); x.moveTo(86, 28); x.quadraticCurveTo(86 + Math.cos(a) * L * 0.6, 28 + Math.sin(a) * L * 0.6 - 10, 86 + Math.cos(a) * L, 28 + Math.sin(a) * L * 0.4 + 14); x.stroke();
-    }
-    return c;
-  }
-  for (var i = 0; i < 9; i++) {
-    var px = 30 + r() * 100, rad = 16 + r() * 22, py = 120 - rad * 0.9 - r() * 34;
-    var g = x.createRadialGradient(px - rad * 0.3, py - rad * 0.4, rad * 0.1, px, py, rad);
-    g.addColorStop(0, rgba(mixc([48, 112, 72], [86, 150, 98], r()))); g.addColorStop(1, rgba([14, 50, 34]));
-    x.fillStyle = g; x.beginPath(); x.arc(px, py, rad, 0, 6.2832); x.fill();
-  }
-  return c;
-}
-function hutSprite(): HTMLCanvasElement {
-  var c = mk(80, 60), x = c.getContext('2d') as CanvasRenderingContext2D;
-  x.fillStyle = '#C9B79A'; x.fillRect(14, 30, 52, 30);
-  x.fillStyle = '#8A5A3A'; x.beginPath(); x.moveTo(6, 32); x.lineTo(40, 8); x.lineTo(74, 32); x.closePath(); x.fill();
-  x.fillStyle = '#5A4632'; x.fillRect(34, 42, 12, 18);
-  return c;
-}
 export function buildSprites(): Sprites {
   var tints: RGB[][] = [[[255, 255, 255], [188, 210, 234]], [[255, 228, 196], [214, 160, 140]], [[116, 102, 92], [58, 50, 46]]];
   var S = { clouds: tints.map(function (tn) { var a: HTMLCanvasElement[] = []; for (var k = 0; k < 4; k++) a.push(cloudSprite(1009 + k * 97, tn)); return a; }) } as unknown as Sprites;
@@ -202,20 +145,8 @@ export function buildSprites(): Sprites {
   ['green', 'gold', 'stub', 'char'].forEach(function (k, i) { (S as unknown as Record<string, HTMLCanvasElement[]>)[k] = [tuftSprite(k, 31 + i * 11), tuftSprite(k, 57 + i * 13), tuftSprite(k, 83 + i * 17)]; });
   S.bale = baleSprite();
   S.farmer = ['#F9A8D4', '#93C5FD', '#FDE68A'].map(farmerSprite);
-  S.canopy = { green: canopyStrip('green', 211), gold: canopyStrip('gold', 223), stub: canopyStrip('stub', 239) };
-  S.grove = [groveSprite(301, false), groveSprite(317, false), groveSprite(331, true)];
-  S.hut = hutSprite();
   return S;
 }
-/** Far field features: [depth, world x, sprite (0–1 groves, 2 palm, 3 hut), scale] */
-var FAR_FEATURES: number[][] = [];
-for (var fq = 0; fq < 18; fq++) {
-  var fk = hash(fq * 5.3), fd0 = 0.68 + hash(fq * 2.9) * 0.24;
-  FAR_FEATURES.push([fd0, (hash(fq * 8.1) - 0.5) * 2.2 / Math.max(0.08, 0.04 + 0.96 * Math.pow(1 - fd0, 1.9)) * 0.35, fk < 0.45 ? (fq % 2) : fk < 0.8 ? 2 : 3, 0.8 + hash(fq * 1.7) * 0.6]);
-}
-FAR_FEATURES.sort(function (a, b) { return b[0] - a[0]; });
-/** Far-field plot boundaries (depth) used for the patchwork tint and bunds */
-var FAR_BUNDS = [0.56, 0.63, 0.7, 0.76, 0.81, 0.86, 0.9, 0.935, 0.96, 0.98];
 var CLOUDS = [
   { n: 6, alt: [0.06, 1.0], s: 0.55, par: 0.6, spd: 4, a: 0.75 },
   { n: 5, alt: [0.5, 1.45], s: 0.9, par: 1.0, spd: 9, a: 0.85 },
@@ -303,93 +234,11 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
     ctx.fillStyle = rgba(tc); ctx.beginPath(); ctx.moveTo(0, hz + 2);
     for (var tx = 0; tx <= W + 8; tx += 8) ctx.lineTo(tx, hz - (6 + noise1(tx * 0.011 + 2) * 22 + noise1(tx * 0.05) * 9 + (noise1(tx * 0.004 + 9) > 0.62 ? 16 : 0)) * ts);
     ctx.lineTo(W, hz + 2); ctx.closePath(); ctx.fill();
-    // far field: tileable canopy strips all the way to the horizon, so the field reads as full,
-    // not just the front rows. They grow, sway in rolling wind waves, ripen and get cut like the near tufts.
-    var gF = sm(0.215, 0.55, P), plantHF = lerp(0.2, 1, gF), goldF = sm(0.49, 0.585, P);
-    // far plants appear with the near ones (same density ramp); the solid under-canopy follows the
-    // field closing over the water (water clears 0.25–0.37)
-    var greenA = lerp(0.55, 1, sm(0.215, 0.3, P)), closeA = sm(0.28, 0.42, P);
-    var underC = mixc(mixc([10, 60, 40], [116, 84, 26], goldF), [140, 104, 56], cut);
-    var pats = v.pats || (v.pats = {});
-    var pat = function (k: CanopyKind): CanvasPattern | null { if (pats[k] === undefined) pats[k] = ctx.createPattern(S.canopy[k], 'repeat-x'); return pats[k] || null; };
-    var FAR_ROWS = v.tier >= 2 ? 30 : 50;
-    for (var fr = 0; fr < FAR_ROWS; fr++) {
-      var fdd = lerp(0.995, 0.48, fr / (FAR_ROWS - 1)), fy0 = rowY(fdd, hz, H), fs2 = rowS(fdd);
-      if (fy0 > H + 4) continue;
-      // far crops are drawn a little taller than true scale so their texture survives at a few pixels high
-      // true scale where it meets the near plants; only the farthest rows are stretched (taller, coarser)
-      var far = sm(0.62, 0.92, fdd);
-      var fsc = (H * 0.19 * fs2) / 110, fsy = fsc * plantHF * (1 - cut * 0.7) * lerp(1, 1.6, far);
-      var fsw = sway * Math.sin(t * 1.3 - fdd * 16 + fr * 0.15) * 0.08 * gF * (1 - cut);
-      // horizontal scale is coarser than true scale: distant crop reads as texture, not a flat band
-      var fscX = fsc * lerp(1.2, 2.6, far), fox = vpX + hash(fr * 7.77) * CANOPY_W * fscX, u0 = -fox / fscX - 120, uw = W / fscX + 240;
-      var layers: [CanopyKind, number, number][] = [['green', (1 - cut) * greenA, fsy], ['gold', (1 - cut) * goldF, fsy], ['stub', cut, fsc * lerp(1, 1.6, far)]];
-      var underH = CANOPY_H * Math.max(fsy, fsc * 0.6) * 0.5;
-      if (closeA > 0.01) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = closeA * 0.95; ctx.fillStyle = rgba(underC); ctx.fillRect(0, fy0 - underH, W, underH); }
-      for (var li2 = 0; li2 < 3; li2++) {
-        var Lk = layers[li2]; if (Lk[1] < 0.01) continue;
-        var pt = pat(Lk[0]); if (!pt) continue;
-        ctx.globalAlpha = Lk[1];
-        // a repeat-x pattern only has content for 0 ≤ v ≤ CANOPY_H, so the strip is drawn downward
-        // from its top edge; the shear is offset so the base stays planted and only the tips sway
-        var shear = -dpr * fsw * fscX;
-        ctx.setTransform(dpr * fscX, 0, shear, dpr * Lk[2], dpr * fox - shear * CANOPY_H, dpr * (fy0 - CANOPY_H * Lk[2]));
-        ctx.fillStyle = pt; ctx.fillRect(u0, 0, uw, CANOPY_H);
-      }
-      // row rhythm: a faint shadowed furrow on alternate far rows only (no bright stripes)
-      if (fr % 2 === 0 && far > 0.05) {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.globalAlpha = 0.12 * far * (1 - burnG) * sm(0.3, 0.45, P);
-        ctx.fillStyle = 'rgb(6,30,20)'; ctx.fillRect(0, fy0 - Math.max(1, fs2 * 4), W, Math.max(1, fs2 * 4));
-      }
-    }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1;
-    // crop rows converging on the vanishing point give the far field its depth
-    var farTop = hz, farBot = rowY(0.56, hz, H);
-    if (farBot > farTop + 2) {
-      ctx.save(); ctx.beginPath(); ctx.rect(0, farTop, W, farBot - farTop); ctx.clip();
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = 'rgba(4,28,18,.08)';
-      ctx.globalAlpha = (1 - burnG) * sm(0.3, 0.45, P);
-      for (var cr = -22; cr <= 22; cr++) {
-        var cwx = cr * 0.12;
-        ctx.beginPath(); ctx.moveTo(vpX, hz); ctx.lineTo(vpX + cwx * W * 1.25 * 1.12, H * 1.12); ctx.stroke();
-      }
-      ctx.restore(); ctx.globalAlpha = 1;
-    }
-
-    // patchwork: neighbouring plots differ a little in tone, and a few ripen early (as in the aerial views)
-    var bundX = function (y: number, bwx: number): number { return vpX + (y - hz) / (H * 1.12 - hz) * bwx * W * 1.25 * 1.12; };
-    var earlyGold = sm(0.42, 0.52, P) * (1 - cut), patchA = (1 - burnG) * (1 - water * 0.7);
-    if (patchA > 0.01) {
-      for (var bi2 = 0; bi2 < FAR_BUNDS.length - 1; bi2++) {
-        var ya = rowY(FAR_BUNDS[bi2], hz, H), yb = rowY(FAR_BUNDS[bi2 + 1], hz, H);
-        if (yb > H) continue;
-        for (var kk2 = -9; kk2 < 9; kk2++) {
-          var hh = hash(bi2 * 31.7 + kk2 * 5.9); if (hh > 0.72) continue;
-          var w1 = kk2 * 0.24 + 0.07, w2 = w1 + 0.24;
-          // subtle tone differences only; a few plots run slightly ahead into gold
-          var tint: RGB = hh < 0.24 ? [70, 150, 104] : hh < 0.48 ? [6, 40, 26] : mixc([40, 110, 76], [236, 186, 74], earlyGold);
-          ctx.fillStyle = rgba(tint, (hh < 0.48 ? 0.07 : 0.04 + earlyGold * 0.22) * patchA);
-          ctx.beginPath(); ctx.moveTo(bundX(ya, w1), ya); ctx.lineTo(bundX(ya, w2), ya); ctx.lineTo(bundX(yb, w2), yb); ctx.lineTo(bundX(yb, w1), yb); ctx.closePath(); ctx.fill();
-        }
-      }
-    }
-
-    // distant tree groves, palms and huts along the plot edges
-    for (var ff = 0; ff < FAR_FEATURES.length; ff++) {
-      var FF = FAR_FEATURES[ff], fsF = rowS(FF[0]), fyF = rowY(FF[0], hz, H), fxF = vpX + FF[1] * W * 1.25 * fsF;
-      var spr = FF[2] === 3 ? S.hut : S.grove[FF[2]], hgt = H * 0.19 * fsF * (FF[2] === 3 ? 0.9 : 2.2) * FF[3], wdt = hgt * spr.width / spr.height;
-      if (fxF + wdt < 0 || fxF - wdt > W) continue;
-      ctx.globalAlpha = 1 - smoke * 0.4; ctx.drawImage(spr, fxF - wdt / 2, fyF - hgt, wdt, hgt);
-    }
-    ctx.globalAlpha = 1;
-
-    // bunds (field boundaries) converging to the vanishing point, drawn over the canopy
-    ctx.strokeStyle = water > 0.3 ? rgba([235, 248, 255], 0.16 + water * 0.14) : rgba(mixc([16, 46, 32], [92, 64, 30], sm(0.5, 0.6, P)), 0.22 * (1 - burnG * 0.6));
+    // bunds (field boundaries) converging to the vanishing point
+    ctx.strokeStyle = water > 0.3 ? rgba([235, 248, 255], 0.16 + water * 0.14) : rgba(mixc([16, 46, 32], [92, 64, 30], sm(0.5, 0.6, P)), 0.2 * (1 - burnG * 0.6));
     ctx.lineWidth = 1.5; ctx.beginPath();
     for (var k = -9; k <= 9; k++) { var bwx = k * 0.24 + 0.07; ctx.moveTo(vpX, hz); ctx.lineTo(vpX + bwx * W * 1.25 * 1.12, H * 1.12); }
-    [0.06, 0.16, 0.29, 0.45].concat(FAR_BUNDS).forEach(function (d) { var y = rowY(d, hz, H); ctx.moveTo(0, y); ctx.lineTo(W, y); });
+    [0.06, 0.16, 0.29, 0.45, 0.62].forEach(function (d) { var y = rowY(d, hz, H); ctx.moveTo(0, y); ctx.lineTo(W, y); });
     ctx.stroke();
 
     // fire: charred ground behind the advancing front
@@ -409,7 +258,6 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
       if (y - size > H) continue;
       var spanX = W * 1.25 * s, stepW = Math.max(0.034, minPx / spanX), range = (W * 0.62) / spanX + stepW;
       var j0 = Math.floor(-range / stepW), j1 = Math.ceil(range / stepW), sc = size / 110;
-      var rowFade = 1 - 0.35 * sm(0.5, 0.63, d); // last detailed rows melt into the far canopy, no seam
       for (var j = j0; j <= j1; j++) {
         var hs = hash(j * 12.9898 + rI * 78.233);
         if (hs > dens) continue;
@@ -423,10 +271,10 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
           var swy = sway * (Math.sin(t * 1.6 + x * 0.012 + rI * 0.5) * 0.06 + (noise1(t * 0.35 + x * 0.002) - 0.5) * 0.18) * growth;
           var sx = sc * widthF, sy = sc * plantH * (1 - cut * 0.75);
           ctx.setTransform(dpr * sx, 0, -dpr * swy * sx, dpr * sy, dpr * x, dpr * y);
-          if (goldT < 1) { ctx.globalAlpha = (1 - cut) * rowFade; ctx.drawImage(S.green[kk], -30, -110); }
-          if (goldT > 0) { ctx.globalAlpha = (1 - cut) * goldT * rowFade; ctx.drawImage(S.gold[kk], -30, -110); }
+          if (goldT < 1) { ctx.globalAlpha = 1 - cut; ctx.drawImage(S.green[kk], -30, -110); }
+          if (goldT > 0) { ctx.globalAlpha = (1 - cut) * goldT; ctx.drawImage(S.gold[kk], -30, -110); }
         }
-        if (cut > 0) { ctx.globalAlpha = cut * rowFade; ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * x, dpr * y); ctx.drawImage(S.stub[kk], -30, -110); }
+        if (cut > 0) { ctx.globalAlpha = cut; ctx.setTransform(dpr * sc, 0, 0, dpr * sc, dpr * x, dpr * y); ctx.drawImage(S.stub[kk], -30, -110); }
       }
     }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.globalAlpha = 1;
@@ -451,10 +299,9 @@ export function drawScene(v: View, P: number, t: number, dt: number): void {
     }
     ctx.globalAlpha = 1;
 
-    // aerial-perspective haze: light, so the far field keeps its depth instead of washing out
-    var fogEnd = rowY(0.6, hz, H), fg2 = ctx.createLinearGradient(0, hz, 0, fogEnd);
-    fg2.addColorStop(0, rgba(hor, 0.42)); fg2.addColorStop(0.25, rgba(hor, 0.14)); fg2.addColorStop(1, rgba(hor, 0));
-    ctx.fillStyle = fg2; ctx.fillRect(0, hz - 1, W, fogEnd - hz + 1);
+    // aerial-perspective fog over the far field
+    var fg2 = ctx.createLinearGradient(0, hz, 0, rowY(0.42, hz, H)); fg2.addColorStop(0, rgba(hor, 0.8)); fg2.addColorStop(1, rgba(hor, 0));
+    ctx.fillStyle = fg2; ctx.fillRect(0, hz - 1, W, rowY(0.42, hz, H) - hz + 1);
 
     // glowing fire front line
     if (fireOn && f > 0) {
