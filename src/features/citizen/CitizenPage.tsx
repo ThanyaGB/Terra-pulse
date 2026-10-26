@@ -9,6 +9,7 @@ import { useAsync, type AsyncState } from '@/hooks/useAsync';
 import { useNow } from '@/hooks/useNow';
 import { AsyncBoundary } from '@/design/AsyncBoundary';
 import { IconBack, IconCamera, IconRoute, IconWind } from '@/design/Icons';
+import { ApiModeToggle } from '@/design/ApiModeToggle';
 import { LangSwitch } from '@/design/LangSwitch';
 import { OfflineBanner } from '@/design/OfflineBanner';
 import { Skeleton } from '@/design/Skeleton';
@@ -70,6 +71,7 @@ export default function CitizenPage() {
         <div className="flex items-center justify-between gap-2">
           <Link to="/" aria-label={t('common.back')} className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white shadow"><IconBack /></Link>
           <LangSwitch />
+          <ApiModeToggle />
         </div>
         <LocationHeader areas={areas.status === 'success' ? areas.data.data : []} areaId={areaId} onChange={setAreaId} title={t('nav.citizen')} aqiById={Object.fromEntries(Object.entries(rt.aqi).map(([k, v]) => [k, v.aqi]))} />
       </header>

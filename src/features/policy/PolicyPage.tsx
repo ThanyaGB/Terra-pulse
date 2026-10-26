@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ApiModeToggle } from '@/design/ApiModeToggle';
 import { OfflineBanner } from '@/design/OfflineBanner';
 import { PageShell } from '@/design/PageShell';
 import { AttributionPanel } from './AttributionPanel';
@@ -17,6 +18,7 @@ export default function PolicyPage() {
       <OfflineBanner />
       <PageShell code="CAQM · MACRO DECISION DASHBOARD" title="Delhi-NCR air quality command view">
         <StatusBar />
+        <div className="flex justify-end"><ApiModeToggle /></div>
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
           <AttributionPanel cellId={cellId} onCellChange={setCellId} />
           <PlumePanel selectedId={cellId} onSelect={setCellId} />
