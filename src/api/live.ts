@@ -1,8 +1,8 @@
-import type { TerraPulseApi } from './contract';
+import type { VayuApi } from './contract';
 import { ApiError } from './errors';
 
 /** Thin fetch-based client for the real backend. Paths mirror contract.ts. */
-export function createLiveApi(baseUrl: string): TerraPulseApi {
+export function createLiveApi(baseUrl: string): VayuApi {
   const base = baseUrl.replace(/\/$/, '');
 
   async function request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {

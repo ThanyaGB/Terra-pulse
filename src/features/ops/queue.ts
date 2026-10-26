@@ -7,7 +7,7 @@ import { readJson, writeJson } from '@/features/citizen/storage';
  * device is online again. Each entry carries the `clientRequestId` made when the supervisor pressed Complete, so the server
  * treats a second send of the same entry as a duplicate and never records a second completion.
  */
-const KEY = 'terrapulse.ops.queue';
+const KEY = 'vayuswachh.ops.queue';
 const MAX_QUEUED = 10;
 
 export function queueList(): CompletionRequest[] {

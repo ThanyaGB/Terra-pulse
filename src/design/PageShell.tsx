@@ -10,7 +10,7 @@ export function PageShell({ code, title, aside, children, footer }: { code: stri
   return (
     <div ref={ref} className="mx-auto flex min-h-screen max-w-[1600px] flex-col gap-4 p-4 lg:p-6">
       <header className="flex flex-wrap items-center gap-4">
-        <Link to="/" aria-label="Back to TerraPulse home" className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface text-ink shadow-md"><IconBack /></Link>
+        <Link to="/" aria-label="Back to Vayu-Swachh home" className="flex h-11 w-11 items-center justify-center rounded-2xl bg-surface text-ink shadow-md"><IconBack /></Link>
         <div className="min-w-[200px] flex-1">
           <div className="mono text-xs tracking-[0.12em] text-leaf-700">{code}</div>
           <h1 className="text-2xl font-bold lg:text-[28px]">{title}</h1>

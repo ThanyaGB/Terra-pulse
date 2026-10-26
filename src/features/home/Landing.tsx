@@ -4,7 +4,9 @@ import '@fontsource/bebas-neue/400.css';
 import './landing.css';
 import { prefersReducedMotion } from '@/hooks/useReducedMotion';
 import { tweenNumber } from '@/design/motion';
+import { CO2E_T_PER_STRAW_T, CREDITS_PER_CO2E_T, STRAW_T_PER_ACRE, creditsForAcres } from '@/lib/ecocredits';
 import { createAmbient, type Ambient } from './film/ambient';
+import { BASE_FILM_PX, FILM_PX, slowBurn } from './film/pacing';
 import { SPR, STAGES, STAGE_P, buildSprites, buildTitle, dayAt, drawScene, fitView, makeView, mix, phaseOf, ramp, setSprites, type View } from './film/scene';
 import { acts, arrows, caps, city, facts, fires, gaps, inventory, loop, nodes, plumes, s0, s1, s2, s3, s4, villages } from './content';
 
@@ -13,9 +15,12 @@ const pad3 = (n: number) => ('00' + n).slice(-3);
 
 /**
  * "Scroll story" landing page. A canvas film (one paddy season, clear sky → smoke → clear sky) is driven by scroll
- * position: the film section is 7200 px tall with a sticky stage, and `--p` (0..1) on the stage drives both the
+ * position: the film section is 9000 px tall (7200 px of story plus a slowed-down burning stretch) with a sticky stage, and `--p` (0..1) on the stage drives both the
  * canvas and the CSS caption overlays. All figures are simulated, as the footer says.
  */
+/** The 6-acre example farm on the eco-credit card (PB-SGR-1142). */
+const DEMO_FARM = { acres: 6, ...creditsForAcres(6) };
+
 export default function Landing() {
   const rootRef = useRef<HTMLElement>(null);
   const filmRef = useRef<HTMLElement>(null);
@@ -55,7 +60,7 @@ export default function Landing() {
       const f = filmRef.current, s = stageRef.current;
       if (!f || !s) return;
       const r = f.getBoundingClientRect(), span = r.height - s.offsetHeight;
-      const p = span > 0 ? Math.min(1, Math.max(0, -r.top / span)) : 0;
+      const p = span > 0 ? slowBurn(Math.min(1, Math.max(0, -r.top / span)), span, BASE_FILM_PX - s.offsetHeight) : 0;
       if (Math.abs(p - lastP) < 0.0003) return;
       lastP = p; s.style.setProperty('--p', p.toFixed(4));
       setDay(dayAt(p)); setBand(Math.floor(p * 40));
@@ -170,14 +175,14 @@ export default function Landing() {
       {/* ===== Top glass navigation ===== */}
       <header style={{ position: 'sticky', top: '12px', zIndex: '50', padding: '0 16px', height: '0' }}>
         <nav className="lp-glass" aria-label="Primary" style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap', padding: '8px 12px 8px 16px', borderRadius: '20px' }}>
-          <a href="#top" aria-label="TerraPulse, back to top" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: '#0B1D33' }}>
+          <a href="#top" aria-label="Vayu-Swachh, back to top" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: '#0B1D33' }}>
             <svg width="34" height="34" viewBox="0 0 40 40" aria-hidden="true">
               <circle cx="20" cy="20" r="19" fill="#DFF3FF"></circle>
               <path d="M11 28 C 11 16, 20 10, 30 10 C 30 21, 23 29, 11 28 Z" fill="none" stroke="#0E8F62" strokeWidth="2.4" strokeLinejoin="round"></path>
               <path d="M11 28 L 24 15" stroke="#0E8F62" strokeWidth="2" strokeLinecap="round"></path>
               <path d="M6 16 H 15 M 8 21 H 13" stroke="#4FB3FF" strokeWidth="2" strokeLinecap="round"></path>
             </svg>
-            <span className="lp-pop" style={{ fontSize: '18px' }}>TerraPulse</span>
+            <span className="lp-pop" style={{ fontSize: '18px' }}>Vayu-Swachh</span>
           </a>
           <div style={{ display: 'flex', gap: '2px', margin: '0 auto', flexWrap: 'wrap' }}>
             {acts.map((a, _i) => (<Fragment key={_i}>
@@ -222,7 +227,7 @@ export default function Landing() {
       </header>
 
       {/* ===== Opening film: a procedural scene painted on canvas, driven by scroll ===== */}
-      <section id="top" ref={filmRef} aria-label="Opening film: one paddy season, from clear sky to smoke" style={{ position: 'relative', height: '7200px', background: '#0B1D33' }}>
+      <section id="top" ref={filmRef} aria-label="Opening film: one paddy season, from clear sky to smoke" style={{ position: 'relative', height: `${FILM_PX}px`, background: '#0B1D33' }}>
         <div className="lp-stage" ref={stageRef} onMouseMove={onFilmMove} onMouseLeave={onFilmLeave} style={{ position: 'sticky', top: '0', height: 'min(100vh, 1000px)', overflow: 'hidden', background: 'linear-gradient(180deg, #2F86D6 0%, #8FD3FF 62%, #DFF3FF 100%)' }}>
           <canvas ref={filmCanvas} aria-hidden="true" style={{ position: 'absolute', inset: '0', width: '100%', height: '100%', display: 'block' }}></canvas>
 
@@ -280,13 +285,13 @@ export default function Landing() {
           </div>
 
           {/* the air clears → particle title (drawn on canvas) + subtitle */}
-          <h1 className="lp-sr">TerraPulse.</h1>
+          <h1 className="lp-sr">Vayu-Swachh.</h1>
           <div className="lp-cap lp-ftitle" style={{ '--a': '.925', '--b': '3', position: 'absolute', left: '0', right: '0', display: 'flex', justifyContent: 'center', pointerEvents: 'none' } as CSSProperties}>
             <span className="lp-glass lp-eyebrow" style={{ padding: '8px 14px', borderRadius: '999px', background: 'rgba(255,255,255,.72)' }}>Multi-agent · orchestrated by IBM Bob</span>
           </div>
           {noCanvas && (<>
             <div className="lp-cap" aria-hidden="true" style={{ '--a': '.9', '--b': '3', position: 'absolute', left: '0', right: '0', top: '22%', textAlign: 'center' } as CSSProperties}>
-              <div className="lp-disp" style={{ fontSize: 'clamp(92px, 15vw, 232px)', lineHeight: '.84', color: '#0B2D50', textShadow: '0 6px 30px rgba(255,255,255,.7)' }}>TERRA.<br />PULSE.</div>
+              <div className="lp-disp" style={{ fontSize: 'clamp(92px, 15vw, 232px)', lineHeight: '.84', color: '#0B2D50', textShadow: '0 6px 30px rgba(255,255,255,.7)' }}>VAYU.<br />SWACHH.</div>
             </div>
           </>)}
           <div className="lp-cap lp-fsub" style={{ '--a': '.945', '--b': '3', position: 'absolute', left: '16px', right: '16px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '18px', textAlign: 'center' } as CSSProperties}>
@@ -325,7 +330,7 @@ export default function Landing() {
                   <h3 className="lp-pop" style={{ margin: '0', fontSize: '19px' }}>{g.title}</h3>
                 </div>
                 <p style={{ margin: '0 0 14px', fontSize: '14px', color: '#3B526B' }}><b style={{ color: '#8A4B0F' }}>Today:</b> {g.today}</p>
-                <p style={{ margin: '0', fontSize: '14px', color: '#23405E' }}><b style={{ color: '#0B7A53' }}>TerraPulse:</b> {g.fix}</p>
+                <p style={{ margin: '0', fontSize: '14px', color: '#23405E' }}><b style={{ color: '#0B7A53' }}>Vayu-Swachh:</b> {g.fix}</p>
               </div>
             </Fragment>))}
           </div>
@@ -713,14 +718,15 @@ export default function Landing() {
                   <span className="lp-tag" style={{ color: '#4A6380' }}>Estimation assumptions</span>
                 </div>
                 <div className="lp-mono" style={{ fontSize: '13px', lineHeight: '1.9', background: '#F0F7FC', borderRadius: '12px', padding: '12px 14px' }}>
-                  straw t = acres × 2.5<br />
-                  CO₂e t ≈ straw t × 1.5<br />
-                  credits = CO₂e t × 10
+                  straw t = acres × {STRAW_T_PER_ACRE}<br />
+                  CO₂e avoided t ≈ straw t × {CO2E_T_PER_STRAW_T}<br />
+                  credits = CO₂e t × {CREDITS_PER_CO2E_T}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: '14px', gap: '8px' }}>
-                  <span style={{ fontSize: '14px', color: '#3B526B' }}>6 acres → 15 t → 22.5 t CO₂e</span>
-                  <span className="lp-mono" style={{ fontSize: '28px', fontWeight: '700', color: '#0B7A53' }}>+225</span>
+                  <span style={{ fontSize: '14px', color: '#3B526B' }}>{DEMO_FARM.acres} acres → {DEMO_FARM.strawT} t → {DEMO_FARM.co2eT} t CO₂e</span>
+                  <span className="lp-mono" style={{ fontSize: '28px', fontWeight: '700', color: '#0B7A53' }}>+{DEMO_FARM.credits}</span>
                 </div>
+                <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#4A6380' }}>Plus the farmer earns about ₹{(DEMO_FARM.strawT * 1650).toLocaleString('en-IN')} selling that straw at ₹1,650/t. Demo assumptions; no official straw-credit scheme exists yet.</p>
               </div>
               <div className="lp-card lp-reveal" style={{ padding: '24px', background: '#0E8F62', color: '#FFFFFF' }}>
                 <h3 className="lp-pop" style={{ margin: '0 0 6px', fontSize: '20px' }}>And on the street?</h3>
@@ -741,7 +747,7 @@ export default function Landing() {
       <footer style={{ background: '#0B1D33', color: '#C9DDF0', padding: '72px 16px 48px' }}>
         <div style={{ maxWidth: '1240px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: '40px', justifyContent: 'space-between' }}>
           <div style={{ flex: '1 1 380px', minWidth: '0' }}>
-            <div className="lp-pop" style={{ fontSize: '24px', color: '#FFFFFF', marginBottom: '12px' }}>TerraPulse</div>
+            <div className="lp-pop" style={{ fontSize: '24px', color: '#FFFFFF', marginBottom: '12px' }}>Vayu-Swachh</div>
             <p style={{ margin: '0', maxWidth: '520px', fontSize: '15px' }}>A multi-agent micro-zone platform, orchestrated by IBM Bob, that links pre-harvest fire-risk forecasting, FPO machinery dispatch, multilingual farmer calls, satellite plume tracking and street-level health alerts into one loop.</p>
           </div>
           <div style={{ flex: '1 1 380px', minWidth: '0' }}>

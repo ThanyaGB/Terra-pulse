@@ -1,7 +1,7 @@
 import type {
   AssignmentReceipt, BookingReceipt, BookingRequest, CallDetails, CallReceipt, CompletionReceipt, CompletionRequest, DirectivePreview, DirectiveReceipt,
   DirectiveType, Farmer, HealthProfile, Lang, MachineType, MachineryStatus, RealtimeEvent, ReportReceipt, ReportRequest,
-  TerraPulseApi, WorkOrder,
+  VayuApi, WorkOrder,
 } from '../contract';
 import { getWorkOrders, saveWorkOrders } from '@/lib/workorders';
 import { ApiError } from '../errors';
@@ -70,7 +70,7 @@ const DIRECTIVES: Record<DirectiveType, Omit<DirectivePreview, 'type'>> = {
   },
 };
 
-export function createMockApi(): TerraPulseApi {
+export function createMockApi(): VayuApi {
   // Mutable session state so actions are visible across screens.
   let machinery: MachineryStatus[] = MACHINERY.map((m) => ({ ...m }));
   const completionByRequest = new Map<string, string>();   // clientRequestId -> work order, so a re-sent completion counts once

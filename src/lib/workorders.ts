@@ -5,8 +5,8 @@ import type { DirectiveReceipt, DirectiveType, WorkActionType, WorkOrder } from 
  * Kept in localStorage so an order issued on the policy dashboard appears in the supervisor portal in the same browser,
  * like the GRAP banner on /citizen. With storage unavailable it falls back to memory for the session.
  */
-const KEY = 'terrapulse.workorders';
-const EVENT = 'terrapulse:workorders';
+const KEY = 'vayuswachh.workorders';
+const EVENT = 'vayuswachh:workorders';
 
 const hours = (h: number) => new Date(Date.now() + h * 3_600_000).toISOString();
 

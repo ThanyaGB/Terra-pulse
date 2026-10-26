@@ -189,7 +189,7 @@ export const en = {
   'cz.report.offlineHint': 'You are offline. Your report will be saved and sent later.',
   'cz.report.outbox': '{n} report waiting to be sent',
   'cz.report.new': 'New report',
-  'cz.install.title': 'Add TerraPulse to your home screen',
+  'cz.install.title': 'Add Vayu-Swachh to your home screen',
   'cz.install.body': 'Open it in one tap and see the last air reading even without internet.',
   'cz.install.ios': 'On iPhone: tap Share, then Add to Home Screen.',
   'cz.install.button': 'Add',

@@ -1,5 +1,5 @@
 /**
- * Backend contract (v1). Every UI component reads through the `TerraPulseApi` interface below.
+ * Backend contract (v1). Every UI component reads through the `VayuApi` interface below.
  * REST paths are relative to VITE_API_BASE_URL. Both the mock and live clients implement it.
  */
 import type { RiskTier } from '@/lib/risk';
@@ -289,7 +289,7 @@ export type RealtimeEvent =
   | { type: 'agent'; agent: AgentStatus; ts: string };
 
 /* ---------- the client every component uses ---------- */
-export interface TerraPulseApi {
+export interface VayuApi {
   getAttribution(cellId?: string): Promise<AttributionResponse>;
   getPlume(): Promise<PlumeResponse>;
   getCompliance(): Promise<ComplianceResponse>;

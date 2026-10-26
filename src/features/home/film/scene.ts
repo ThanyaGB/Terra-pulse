@@ -372,7 +372,7 @@ export function buildTitle(v: View): void {
   var fs = Math.min(W * 0.16, H * 0.26, 240), cy = H * 0.4;
   x.fillStyle = '#fff'; x.textAlign = 'center'; x.textBaseline = 'middle';
   x.font = '400 ' + fs + 'px "Bebas Neue", Impact, "Arial Narrow", sans-serif';
-  x.fillText('TERRA.', W / 2, cy - fs * 0.44); x.fillText('PULSE.', W / 2, cy + fs * 0.44);
+  x.fillText('VAYU.', W / 2, cy - fs * 0.44); x.fillText('SWACHH.', W / 2, cy + fs * 0.44);
   var data = x.getImageData(0, 0, c.width, c.height).data, pts: number[][] = [], step = Math.max(2, Math.round(fs / 44));
   for (var yy = 0; yy < c.height; yy += step) for (var xx = 0; xx < c.width; xx += step) if (data[(yy * c.width + xx) * 4 + 3] > 128) pts.push([xx, yy]);
   var maxN = (W < 768 ? QUALITY.titleMobile : QUALITY.titleDesktop) / (v.tier >= 2 ? 2 : 1);

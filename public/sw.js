@@ -1,4 +1,4 @@
-/* TerraPulse service worker.
+/* Vayu-Swachh service worker.
  *  - app shell + built assets: cache-first (hashed filenames never change)
  *  - navigations: network-first, falling back to the cached shell so /citizen opens offline
  *  - GET /api/* (citizen snapshot, advice, areas): network-first, falling back to the last good response

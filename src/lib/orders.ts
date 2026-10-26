@@ -2,9 +2,9 @@ import type { DirectiveReceipt, DirectiveType } from '@/api/contract';
 import { createWorkOrdersFor } from './workorders';
 
 /** Session-shared state between /policy (writes), /citizen (reads the GRAP banner) and /ops (gets the work orders). */
-const ORDERS_KEY = 'terrapulse.orders';
-const GRAP_KEY = 'terrapulse.grap';
-const EVENT = 'terrapulse:orders';
+const ORDERS_KEY = 'vayuswachh.orders';
+const GRAP_KEY = 'vayuswachh.grap';
+const EVENT = 'vayuswachh:orders';
 
 export interface OrderEntry { id: string; type: DirectiveType; title: string; issuedAt: string }
 

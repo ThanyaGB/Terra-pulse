@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isGrapActive, subscribeOrders } from '@/lib/orders';
 
-/** Shows when /policy has issued a GRAP-II alert in this browser (shared via localStorage 'terrapulse.grap'). */
+/** Shows when /policy has issued a GRAP-II alert in this browser (shared via localStorage 'vayuswachh.grap'). */
 export function GrapBanner() {
   const [on, setOn] = useState(isGrapActive);
   useEffect(() => subscribeOrders(() => setOn(isGrapActive())), []);

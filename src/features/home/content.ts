@@ -2,12 +2,12 @@
 import { words } from './film/scene';
 
 export const caps = [
-  { a: -1, b: 0.085, ec: '#DFF3FF', eyebrow: 'Delhi-NCR · every October', title: 'This sky has an expiry date.', body: 'Scroll to ride one rice season, from seedling to smoke, and see where TerraPulse steps in.' },
+  { a: -1, b: 0.085, ec: '#DFF3FF', eyebrow: 'Delhi-NCR · every October', title: 'This sky has an expiry date.', body: 'Scroll to ride one rice season, from seedling to smoke, and see where Vayu-Swachh steps in.' },
   { a: 0.1, b: 0.2, ec: '#DFF3FF', eyebrow: '230 km upwind · Sangrur, Punjab', title: 'The smog starts 230 km away, in a paddy field.', body: 'Long before a single lung in Delhi feels it.' },
   { a: 0.225, b: 0.31, ec: '#6EE7B7', eyebrow: 'Day 0 · Transplanting', title: 'A seedling goes in. A satellite takes notes.', body: 'Satellites log a baseline for every plot the day its seedlings go in.' },
   { a: 0.335, b: 0.42, ec: '#6EE7B7', eyebrow: 'Day 30 · Tillering', title: 'From space, healthy looks green.', body: 'Satellite greenness (NDVI) shows how the crop is growing. Our forecast agent learns each plot’s rhythm.' },
   { a: 0.44, b: 0.505, ec: '#6EE7B7', eyebrow: 'Day 60 · Peak green', title: 'The field is peaking. So is our forecast.', body: 'We can already predict this plot’s harvest date, give or take about five days (estimate).' },
-  { a: 0.52, b: 0.585, ec: '#FCD34D', eyebrow: 'Day 95 · Ripening', title: 'Gold is the starting gun. You have 7–10 days.', body: 'This is TerraPulse’s window: book the machines before anyone reaches for a match.' },
+  { a: 0.52, b: 0.585, ec: '#FCD34D', eyebrow: 'Day 95 · Ripening', title: 'Gold is the starting gun. You have 7–10 days.', body: 'This is Vayu-Swachh’s window: book the machines before anyone reaches for a match.' },
   { a: 0.6, b: 0.66, ec: '#FCD34D', eyebrow: 'Day 110 · Harvested', title: 'Farmers keep the grain. The straw becomes a problem.', body: 'About 2.5 tonnes of straw per acre, and only a few weeks to sow wheat.' },
   { a: 0.675, b: 0.735, ec: '#FFB27D', eyebrow: 'Day 112 · The match', title: 'Cheapest fix for a farmer. Costliest for a city.', body: 'Machines run short at the peak. Fire clears a field in an afternoon, and others pay with their breath.' },
   { a: 0.745, b: 0.82, ec: '#FFB27D', eyebrow: 'Day 112 · Dusk', title: 'A thousand fields exhale into one sky.', body: 'Satellites can see the heat. Nobody downwind knows yet.' },

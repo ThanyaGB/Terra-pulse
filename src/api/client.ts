@@ -1,4 +1,4 @@
-import type { TerraPulseApi } from './contract';
+import type { VayuApi } from './contract';
 import { createLiveApi } from './live';
 import { createMockApi } from './mock/mockApi';
 
@@ -9,4 +9,4 @@ export const POLL_INTERVAL_MS: number = Number(import.meta.env.VITE_POLL_INTERVA
 export const MAPBOX_TOKEN: string = import.meta.env.VITE_MAPBOX_TOKEN ?? '';
 
 /** The single API instance every component imports. Switching VITE_API_MODE swaps the whole backend. */
-export const api: TerraPulseApi = API_MODE === 'live' ? createLiveApi(API_BASE_URL) : createMockApi();
+export const api: VayuApi = API_MODE === 'live' ? createLiveApi(API_BASE_URL) : createMockApi();

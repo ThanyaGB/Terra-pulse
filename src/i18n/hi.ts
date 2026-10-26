@@ -165,7 +165,7 @@ export const hi: Partial<Record<MessageKey, string>> = {
   'cz.report.offlineHint': 'आप ऑफ़लाइन हैं। शिकायत सहेजी जाएगी और बाद में भेजी जाएगी।',
   'cz.report.outbox': '{n} शिकायत भेजे जाने की प्रतीक्षा में',
   'cz.report.new': 'नई शिकायत',
-  'cz.install.title': 'TerraPulse को होम स्क्रीन पर जोड़ें',
+  'cz.install.title': 'वायु-स्वच्छ को होम स्क्रीन पर जोड़ें',
   'cz.install.body': 'एक टैप में खोलें और बिना इंटरनेट भी आख़िरी हवा की जानकारी देखें।',
   'cz.install.ios': 'iPhone पर: शेयर दबाएँ, फिर "होम स्क्रीन में जोड़ें"।',
   'cz.install.button': 'जोड़ें',

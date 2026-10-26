@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { betterWindow, forecast24 } from '@/lib/forecast';
 import { clearOrders, getOrders, isGrapActive, recordOrder } from '@/lib/orders';
+import { creditsForAcres, creditsForStraw } from '@/lib/ecocredits';
+import { BASE_FILM_PX, BURN_FROM, BURN_TO, FILM_PX, slowBurn } from '@/features/home/film/pacing';
 import { STAGES, STAGE_P, clamp01, dayAt, phaseOf } from '@/features/home/film/scene';
 
 describe('forecast', () => {
@@ -47,5 +49,29 @@ describe('landing film maths', () => {
   it('names the burning and smoke phases late in the film', () => {
     expect(phaseOf(112, 0.7)[1]).toBe('Burning');
     expect(phaseOf(113, 0.9)[1]).toBe('Smoke drift');
+  });
+});
+
+describe('eco-credits (one formula for the landing card and the FPO console)', () => {
+  it('turns straw into avoided CO2e and credits', () => {
+    expect(creditsForStraw(142.5)).toEqual({ strawT: 142.5, co2eT: 213.75, credits: 2138 });
+  });
+  it('matches the 6-acre example on the landing page', () => {
+    expect(creditsForAcres(6)).toEqual({ strawT: 15, co2eT: 22.5, credits: 225 });
+  });
+});
+
+describe('film pacing: the burning stretch gets the extra scroll', () => {
+  const stage = 900, span = FILM_PX - stage, base = BASE_FILM_PX - stage;
+  const at = (px: number) => slowBurn(px / span, span, base);
+  it('keeps every stage before the fire at the old speed', () => {
+    expect(at(base * 0.3)).toBeCloseTo(0.3, 5);
+    expect(at(base * 0.6)).toBeCloseTo(0.6, 5);
+  });
+  it('spends all the extra pixels on the burning stretch, then ends at 1', () => {
+    const burnStartPx = base * BURN_FROM;
+    const burnPx = (BURN_TO - BURN_FROM) * base + (FILM_PX - BASE_FILM_PX);
+    expect(at(burnStartPx + burnPx)).toBeCloseTo(BURN_TO, 5);
+    expect(at(span)).toBe(1);
   });
 });
