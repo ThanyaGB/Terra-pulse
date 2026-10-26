@@ -20,6 +20,8 @@ const pad3 = (n: number) => ('00' + n).slice(-3);
  */
 /** The 6-acre example farm on the eco-credit card (PB-SGR-1142). */
 const DEMO_FARM = { acres: 6, ...creditsForAcres(6) };
+/** Act 4 dispatch map route (700×420 viewBox): machinery station (100,290) → high-risk farm (560,205). Label chips are placed at the same points in %. */
+const DISPATCH_ROUTE = 'M100 290 C 230 230, 400 320, 560 205';
 
 export default function Landing() {
   const rootRef = useRef<HTMLElement>(null);
@@ -672,28 +674,46 @@ export default function Landing() {
           <p className="lp-reveal" style={{ margin: '0 0 48px', fontSize: '18px', maxWidth: '620px', color: '#0F2A47' }}>The nearest machine is matched, the farmer confirms with a keypress on a basic phone, the straw goes to a Bio-CNG plant instead of the sky — and the city's air card turns green again.</p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '24px' }}>
-            <div className="lp-reveal" style={{ flex: '999 1 640px', minWidth: '0', position: 'relative', borderRadius: '28px', overflow: 'hidden', minHeight: '420px', background: 'linear-gradient(180deg, #2F86D6, #DFF3FF 40%, #0E5E40 41%)', boxShadow: '0 30px 80px rgba(15,42,71,.2)' }}>
-              <canvas ref={act4Canvas} aria-hidden="true" style={{ position: 'absolute', inset: '0', width: '100%', height: '100%', display: 'block' }}></canvas>
-              <div aria-hidden="true" style={{ position: 'absolute', inset: '0', background: 'linear-gradient(180deg, rgba(11,29,51,.05), rgba(11,29,51,.3))' }}></div>
-              <svg viewBox="0 0 700 420" preserveAspectRatio="xMidYMid slice" role="img" aria-label="A glowing green route links the machinery station to the high-risk farm; the fire point is covered by a green ring" style={{ position: 'absolute', inset: '0', width: '100%', height: '100%' }}>
-                <defs><filter id="gg"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter></defs>
-                <path d="M120 380 C 240 300, 420 360, 540 230" fill="none" stroke="#34D399" strokeWidth="10" opacity=".6" filter="url(#gg)"></path>
-                <path d="M120 380 C 240 300, 420 360, 540 230" fill="none" stroke="#FFFFFF" strokeWidth="3" className="lp-flow"></path>
-                <circle r="7" fill="#FFFFFF"><animateMotion dur="3.6s" repeatCount="indefinite" path="M120 380 C 240 300, 420 360, 540 230"></animateMotion></circle>
-                <circle className="lp-breathe" cx="120" cy="380" r="26" fill="#10B981"></circle>
-                <circle cx="120" cy="380" r="13" fill="#10B981" stroke="#FFFFFF" strokeWidth="3"></circle>
-                <circle className="lp-pulse" cx="540" cy="230" r="16" fill="none" stroke="#34D399" strokeWidth="3"></circle>
-                <circle cx="540" cy="230" r="16" fill="rgba(16,185,129,.35)" stroke="#34D399" strokeWidth="3"></circle>
-                <circle cx="540" cy="230" r="5" fill="#FF8A3D"></circle>
-              </svg>
-              <div className="lp-glass" style={{ position: 'absolute', left: '16px', top: '16px', padding: '12px 16px', borderRadius: '16px', background: 'rgba(255,255,255,.82)' }}>
-                <div style={{ fontSize: '12px', color: '#3B526B' }}>Station → farm PB-SGR-1142</div>
-                <div className="lp-mono" style={{ fontWeight: '700', fontSize: '18px' }}>2.4 km · ETA 38 min</div>
+            {/* Dispatch map: fixed 5:3 so the route is never cropped; stays in view while the cards scroll */}
+            <figure className="lp-reveal lp-dispatch" style={{ flex: '1 1 480px', minWidth: '0', margin: '0', alignSelf: 'flex-start', position: 'sticky', top: '104px', borderRadius: '28px', overflow: 'hidden', background: '#FFFFFF', boxShadow: '0 30px 80px rgba(15,42,71,.18)' }}>
+              <div style={{ position: 'relative', aspectRatio: '5 / 3', background: 'linear-gradient(180deg, #2F86D6, #DFF3FF 40%, #0E5E40 41%)' }}>
+                <canvas ref={act4Canvas} aria-hidden="true" style={{ position: 'absolute', inset: '0', width: '100%', height: '100%', display: 'block' }}></canvas>
+                <div aria-hidden="true" style={{ position: 'absolute', inset: '0', background: 'linear-gradient(180deg, rgba(11,29,51,0) 35%, rgba(11,29,51,.28))' }}></div>
+                <svg viewBox="0 0 700 420" preserveAspectRatio="xMidYMid meet" aria-hidden="true" style={{ position: 'absolute', inset: '0', width: '100%', height: '100%' }}>
+                  <defs><filter id="gg"><feGaussianBlur stdDeviation="5"></feGaussianBlur></filter></defs>
+                  <path d={DISPATCH_ROUTE} fill="none" stroke="#34D399" strokeWidth="12" opacity=".7" filter="url(#gg)"></path>
+                  <path d={DISPATCH_ROUTE} fill="none" stroke="#FFFFFF" strokeWidth="3.5" className="lp-flow"></path>
+                  <g>
+                    <animateMotion dur="4.5s" repeatCount="indefinite" rotate="auto" path={DISPATCH_ROUTE}></animateMotion>
+                    <rect x="-13" y="-8" width="26" height="16" rx="5" fill="#FFFFFF" stroke="#0B7A53" strokeWidth="2.5"></rect>
+                    <rect x="4" y="-5" width="6" height="10" rx="1.5" fill="#0B7A53"></rect>
+                  </g>
+                  <circle className="lp-breathe" cx="100" cy="290" r="26" fill="#10B981"></circle>
+                  <circle cx="100" cy="290" r="13" fill="#10B981" stroke="#FFFFFF" strokeWidth="3"></circle>
+                  <circle className="lp-pulse" cx="560" cy="205" r="18" fill="none" stroke="#34D399" strokeWidth="3"></circle>
+                  <circle cx="560" cy="205" r="18" fill="rgba(16,185,129,.4)" stroke="#34D399" strokeWidth="3"></circle>
+                  <circle cx="560" cy="205" r="6" fill="#FF8A3D"></circle>
+                </svg>
+                <div className="lp-mapchip" style={{ left: '14.3%', top: '69%', transform: 'translate(-24px, 34px)' }}>
+                  <b>Machinery station</b><span className="lp-mapchip-sub">CHC Bhawanigarh</span>
+                </div>
+                <div className="lp-mapchip" style={{ left: '80%', top: '48.8%', transform: 'translate(-50%, calc(-100% - 30px))' }}>
+                  <b>High-risk farm</b><span className="lp-mapchip-sub">Plot PB-SGR-1142 · fire risk 92%</span>
+                </div>
+                <div className="lp-mapchip lp-mapchip-route lp-mono" style={{ left: '47%', top: '71%', transform: 'translate(-50%, 0)' }}>2.4 km · ETA 38 min</div>
+                <span className="lp-tag" style={{ position: 'absolute', right: '12px', top: '12px', color: '#FFFFFF', background: 'rgba(11,29,51,.45)' }}>Simulated</span>
               </div>
-              <span className="lp-tag" style={{ position: 'absolute', right: '16px', top: '16px', color: '#FFFFFF', background: 'rgba(11,29,51,.45)' }}>Simulated</span>
-            </div>
+              <figcaption style={{ padding: '16px 20px 18px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ fontSize: '15px', fontWeight: '600', color: '#0B1D33' }}>How one burn is prevented: the nearest free machine is sent to the riskiest plot before harvest.</div>
+                <ul style={{ listStyle: 'none', margin: '0', padding: '0', display: 'flex', flexWrap: 'wrap', gap: '8px 18px', fontSize: '13px', color: '#3B526B' }}>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="#10B981" stroke="#FFFFFF" strokeWidth="1.5"></circle></svg>Machinery station</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><svg width="26" height="14" aria-hidden="true"><path d="M1 7 H25" stroke="#34D399" strokeWidth="4" strokeDasharray="5 3"></path></svg>Super Seeder on its way</li>
+                  <li style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><svg width="14" height="14" aria-hidden="true"><circle cx="7" cy="7" r="6" fill="rgba(16,185,129,.35)" stroke="#34D399" strokeWidth="2"></circle><circle cx="7" cy="7" r="2.2" fill="#FF8A3D"></circle></svg>Predicted fire, now covered</li>
+                </ul>
+              </figcaption>
+            </figure>
 
-            <div style={{ flex: '1 1 320px', minWidth: '0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ flex: '1 1 420px', minWidth: '0', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div className="lp-card lp-glass lp-reveal" style={{ padding: '24px', background: 'rgba(255,255,255,.85)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', gap: '8px' }}>
                   <h3 className="lp-pop" style={{ margin: '0', fontSize: '20px' }}>AI machinery match</h3>

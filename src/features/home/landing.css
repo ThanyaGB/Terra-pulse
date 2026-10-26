@@ -72,3 +72,10 @@
 .lp-word.lp-in,.lp-reveal.lp-in{animation-play-state:running}
 .lp [id]{scroll-margin-top:80px}
 .lp-nav-links{display:flex;gap:2px;margin:0 auto;flex-wrap:wrap}
+
+/* Act 4 dispatch map labels: HTML chips over the 5:3 map so text stays readable at any width */
+.lp-mapchip{position:absolute;display:flex;flex-direction:column;gap:1px;padding:6px 10px;border-radius:12px;background:rgba(255,255,255,.92);color:#0B1D33;font:600 13px/1.25 Inter,system-ui,sans-serif;white-space:nowrap;box-shadow:0 6px 20px rgba(11,29,51,.22);pointer-events:none}
+.lp-mapchip-sub{font-weight:500;font-size:11px;color:#3B526B}
+.lp-mapchip-route{padding:4px 9px;font-size:12px;font-weight:700;background:#0B7A53;color:#FFFFFF}
+@media (max-width:560px){.lp-mapchip{padding:4px 8px;font-size:11px}.lp-mapchip-sub{display:none}.lp-mapchip-route{font-size:10px}}
+@media (max-width:920px){.lp-dispatch{position:relative!important;top:auto!important}}
