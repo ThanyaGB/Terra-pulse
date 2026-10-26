@@ -199,10 +199,10 @@ export default function Landing() {
             </button>
             {menuOpen && (<>
               <div className="lp-glass lp-menu" style={{ position: 'absolute', right: '0', top: '48px', width: '280px', padding: '8px', borderRadius: '16px', background: 'rgba(255,255,255,.92)' }}>
-                <Link to="/policy"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D1</b>  CAQM decision dashboard</Link>
-                <Link to="/fpo"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D2</b>  FPO dispatch console</Link>
-                <Link to="/farmer"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D3</b>  Farmer voice-call simulator</Link>
-                <Link to="/citizen"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D4</b>  Citizen &amp; sensitive-groups app</Link>
+                <Link to="/fpo"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D1</b>  FPO dispatch console</Link>
+                <Link to="/farmer"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D2</b>  Farmer voice-call simulator</Link>
+                <Link to="/citizen"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D3</b>  Citizen &amp; sensitive-groups app</Link>
+                <Link to="/policy"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D4</b>  CAQM decision dashboard</Link>
                 <Link to="/ops"><b className="lp-mono" style={{ color: '#0F6FB8' }}>D5</b>  Municipal supervisor portal</Link>
               </div>
             </>)}
@@ -219,7 +219,7 @@ export default function Landing() {
               </>)}
             </svg>
           </button>
-          <Link className="lp-btn lp-btn-g" to="/policy?tour=1" style={{ minHeight: '40px' }} aria-label="Start judge demo mode, a guided tour of the five prototypes">
+          <Link className="lp-btn lp-btn-g" to="/fpo?tour=1" style={{ minHeight: '40px' }} aria-label="Start judge demo mode, a guided tour of the five prototypes">
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M3 2 L12 7 L3 12 Z" fill="#fff"></path></svg>
             Judge demo mode
           </Link>

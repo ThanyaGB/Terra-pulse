@@ -30,7 +30,7 @@ Scripts (root): `npm run build`, `npm run typecheck`, `npm test` (Vitest), `npm 
   - `/farmer`: phone-call simulator. Full 12-key keypad: menu 1 = machine, 2 = straw pickup, 9 = FPO worker; then 1 = confirm, 0 = back. Nothing is booked before the confirming 1. No WhatsApp anywhere.
   - `/citizen`: PWA with AQI, 24 h forecast "better window", clean commute, snap-and-report.
   - `/ops`: municipal supervisor portal. Accept, then Complete with photo + GPS (demo photo and demo location buttons for laptops).
-- Judge tour: `/policy?tour=1..5` (policy → fpo → farmer → citizen → ops).
+- Judge tour: `/fpo?tour=1..5` (fpo → farmer → citizen → policy → ops), same order as the landing "System prototypes" menu (D1–D5). The tour panel (`src/design/TourBar.tsx`) floats: drag it by its header, minimise it to a pill, double-click or Home to dock; position and minimised state persist in `vayuswachh.tour.ui`.
 
 ## Backend notes
 
