@@ -14,6 +14,8 @@ export interface SocketLike {
 export interface RealtimeOptions {
   /** WebSocket URL. When omitted the client goes straight to polling. */
   url?: string;
+  /** Resolves the URL per connection attempt (e.g. with a fresh token). Takes precedence over `url`; undefined → polling. */
+  getUrl?: () => Promise<string | undefined>;
   createSocket?: (url: string) => SocketLike;
   /** Poll source used while the socket is down. */
   fetchSnapshot: () => Promise<RealtimeEvent[]>;
@@ -84,7 +86,17 @@ export class RealtimeClient {
   }
 
   private openSocket() {
-    const { url, createSocket } = this.opts;
+    const { getUrl } = this.opts;
+    if (!getUrl) return this.connect(this.opts.url);
+    this.setState('connecting');
+    getUrl().then((url) => { if (!this.stopped && !this.socket) this.connect(url); }, () => {
+      this.fallbackToPolling();
+      this.scheduleReconnect();
+    });
+  }
+
+  private connect(url: string | undefined) {
+    const { createSocket } = this.opts;
     if (!url) return this.fallbackToPolling();
     this.setState('connecting');
     let socket: SocketLike;
@@ -117,7 +129,7 @@ export class RealtimeClient {
   }
 
   private scheduleReconnect() {
-    if (this.stopped || !this.opts.url) return;
+    if (this.stopped || !(this.opts.url || this.opts.getUrl)) return;
     if (this.retryTimer) clearTimeout(this.retryTimer);
     this.retryTimer = setTimeout(() => {
       this.retryTimer = null;

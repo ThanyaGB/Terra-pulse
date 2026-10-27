@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useReducer, useState, type ReactNode } from 'react';
-import { API_MODE, POLL_INTERVAL_MS, WS_URL, api } from './client';
+import { API_MODE, POLL_INTERVAL_MS, api, liveSocketUrl } from './client';
 import type { AgentStatus, RealtimeEvent } from './contract';
 import { RealtimeClient, type ConnectionState } from './realtime';
 
@@ -59,7 +59,7 @@ function startMockStream(push: (e: RealtimeEvent) => void): () => void {
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const [snap, dispatch] = useReducer(reduce, empty);
   const [client] = useState(() => new RealtimeClient({
-    url: API_MODE === 'live' ? WS_URL : undefined,
+    getUrl: API_MODE === 'live' ? liveSocketUrl : undefined,
     fetchSnapshot: () => api.getRealtimeSnapshot(),
     pollIntervalMs: API_MODE === 'live' ? POLL_INTERVAL_MS : 60_000,
   }));
