@@ -26,6 +26,8 @@ jobs:
         env:
           VAYU_TEST_DATABASE_URL: postgresql+psycopg://vayu:vayu_ci@localhost:5432/vayu
           VAYU_REDIS_URL: redis://localhost:6379/0
+          VAYU_JWT_SECRET: ${{ secrets.VAYU_JWT_SECRET }}
+          VAYU_DATA_GOV_IN_KEY: ${{ secrets.VAYU_DATA_GOV_IN_KEY }}
         run: pytest -m "not live"
       - name: contract diff (OpenAPI + event schemas must be regenerated when the API changes)
         run: python scripts/export_contracts.py --check
@@ -42,9 +44,13 @@ jobs:
         run: npm run gen:api && git diff --exit-code src/api-client/schema.d.ts
       - run: npx tsc --noEmit
       - run: npx vitest run
-      - run: npm run build
-      - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - name: build and e2e
+        env:
+          VITE_MAPBOX_TOKEN: ${{ secrets.VITE_MAPBOX_TOKEN }}
+        run: |
+          npm run build
+          npx playwright install --with-deps chromium
+          npx playwright test
 
   secrets:
     runs-on: ubuntu-latest
